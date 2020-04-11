@@ -6,6 +6,7 @@
 
 from lib.parser import parse_input
 import argparse
+from argparse import Namespace
 
 
 VERSION = 0.1
@@ -40,7 +41,13 @@ def get_arguments():
 
 
 def assemble():
-    print("here")
     args = get_arguments()
     infile = args.INFILE
+    return parse_input(infile, **vars(args))
+
+
+def assemble_again(assembly_file):
+    args = get_arguments()
+    args.INFILE = assembly_file
+    infile = assembly_file
     return parse_input(infile, **vars(args))

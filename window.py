@@ -3,31 +3,28 @@ from tkinter import ttk, messagebox
 from disassembler import *
 from PIL import Image, ImageTk
 from cpu import *
-
-def _setup_menus(master):
-    menu = Menu(master)
-    master.config(menu=menu)
-
-    file_menu = Menu(menu)
-    menu.add_cascade(label='File', menu=file_menu)
-    file_menu.add_command(label='Open...')
-    file_menu.add_separator()
-    file_menu.add_command(label='Exit', command=master.quit)
-
-    help_menu = Menu(menu)
-    menu.add_cascade(label='Help', menu=help_menu)
-    help_menu.add_command(label='About', command=_about_window)
+from pipeline_visual import PipelineGraphics
+from pipeline_visual import mas
+from tkinter import filedialog
+from rvi import assemble_again
 
 
 def _setup_buttons(master, cpu_step, cpu_back, cpu_reset):
     buttons_pane = ttk.Panedwindow(master, width=100, height=50)
     buttons_pane.place(x=0, y=0)
-    step_button = Button(buttons_pane, text="Step", command=cpu_step)
+    step_button = Button(buttons_pane, text="Step (F1)", command=cpu_step)
     step_button.grid(row=0, column=0, sticky=W)
-    back_button = Button(buttons_pane, text="Back", command=cpu_back)
+    back_button = Button(buttons_pane, text="Back (F2)", command=cpu_back)
     back_button.grid(row=0, column=1, sticky=W)
-    reset_button = Button(buttons_pane, text="Reset", command=cpu_reset)
+    reset_button = Button(buttons_pane, text="Reset (F3)", command=cpu_reset)
     reset_button.grid(row=0, column=2, sticky=W)
+
+
+def _setup_check_buttons(master, forwarding_en, toggle_forwarding):
+    check_buttons_pane = ttk.Panedwindow(master, width=100, height=50)
+    check_buttons_pane.place(x=0, y=80)
+    c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=forwarding_en, command=toggle_forwarding)
+    c.grid(row=1, column=0, sticky=W)
 
 
 def _setup_register_file_entries(master):
@@ -119,69 +116,12 @@ def _setup_program_mem_box(master, program_memory, program_mem_yview, program_me
     return [mem_text, mem_addr_text, scrollbar]
 
 
-def _setup_pipeline_box(master):
-    pipe_pane = ttk.Panedwindow(master, orient=VERTICAL, width=800, height=400)
-    pipe_pane.place(x=100, y=400)
-
-    load = Image.open("C:/Users/mo0887at/OneDrive - Lund University/pipe.png")
-    render = ImageTk.PhotoImage(load)
-    img = Label(pipe_pane, image=render)
-    img.image = render
-    img.place(x=100, y=0)
-
-    img2 = Label(pipe_pane, image=render)
-    img2.image = render
-    img2.place(x=300, y=0)
-
-    img3 = Label(pipe_pane, image=render)
-    img3.image = render
-    img3.place(x=500, y=0)
-
-    img4 = Label(pipe_pane, image=render)
-    img4.image = render
-    img4.place(x=700, y=0)
-
-    if_id_inst = StringVar()
-    if_id_inst.set("")
-    label = Label(pipe_pane, textvariable=if_id_inst, relief=FLAT, font=("courier", 12))
-    label.place(x=100, y=200)
-
-    id_ex_inst = StringVar()
-    id_ex_inst.set("")
-    label = Label(pipe_pane, textvariable=id_ex_inst, relief=FLAT, font=("courier", 12))
-    label.place(x=300, y=200)
-
-    ex_mem_inst = StringVar()
-    ex_mem_inst.set("")
-    label = Label(pipe_pane, textvariable=ex_mem_inst, relief=FLAT, font=("courier", 12))
-    label.place(x=500, y=200)
-
-    mem_wb_inst = StringVar()
-    mem_wb_inst.set("")
-    label = Label(pipe_pane, textvariable=mem_wb_inst, relief=FLAT, font=("courier", 12))
-    label.place(x=700, y=200)
-
-    load = Image.open("C:/Users/mo0887at/OneDrive - Lund University/pc.png")
-    render = ImageTk.PhotoImage(load)
-    img = Label(pipe_pane, image=render)
-    img.image = render
-    img.place(x=30, y=70)
-
-    if_pc_in = StringVar()
-    if_pc_in.set("pc")
-    label = Label(pipe_pane, textvariable=if_pc_in, relief=FLAT, font=("courier", 10))
-    label.place(x=-0, y=80)
-
-    if_pc_out = StringVar()
-    if_pc_out.set("")
-    label = Label(pipe_pane, textvariable=if_pc_out, relief=FLAT, font=("courier", 10))
-    label.place(x=60, y=80)
-
-    return [if_id_inst, id_ex_inst, ex_mem_inst, mem_wb_inst, if_pc_in, if_pc_out]
-
-
 def _about_window():
     messagebox.showinfo("About", "Created by MJ!")
+
+
+# def _open_window():
+#     master.filename = filedialog.askopenfilename(initialdir="/", title="Select file", filetypes=(("jpeg files", "*.jpg"), ("all files", "*.*")))
 
 
 class Screen:
@@ -189,22 +129,87 @@ class Screen:
         self.risc_v = CPU()
         self.register_file_entries = []
 
-        master = Tk()
-        master.wm_title("RISC-V Masimulator")
-        master.geometry(width + "x" + height)
+        self.master = Tk()
+        self.master.wm_title("RISC-V Masimulator")
+        self.master.geometry(width + "x" + height)
 
-        _setup_menus(master)
-        _setup_buttons(master, self.step_callback, self.backstep_callback, self.reset_callback)
-        self.register_file_entries = _setup_register_file_entries(master)
+        self._setup_menus(self.master)
+        _setup_buttons(self.master, self.step_callback, self.backstep_callback, self.reset_callback)
+
+        self.forwarding_enabled = IntVar()
+        _setup_check_buttons(self.master, self.forwarding_enabled, self.toggle_forwarding_callback)
+
+        self.register_file_entries = _setup_register_file_entries(self.master)
         [self.data_memory_box, self.data_memory_address_box, self.data_mem_scrollbar] = \
-            _setup_data_mem_box(master, self.risc_v.state.data_memory, self.data_mem_yview, self.data_mem_yview_tie)
+            _setup_data_mem_box(self.master, self.risc_v.state.data_memory, self.data_mem_yview,
+                                self.data_mem_yview_tie)
         [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
-            _setup_program_mem_box(master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
-        [self.if_id_inst, self.id_ex_inst, self.ex_mem_inst, self.mem_wb_inst, self.if_pc_in, self.if_pc_out] = _setup_pipeline_box(master)
+            _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
+
+        self.pipe_graphics = PipelineGraphics(self.master)
+        [self.if_inst, self.if_id_inst, self.id_ex_inst, self.ex_mem_inst,
+         self.mem_wb_inst, self.if_pc_in, self.if_pc_out, self.prog_mem_out, self.id_branch_addr,
+         self.id_rs1, self.id_rs2, self.alu_left, self.alu_right] = self.pipe_graphics.setup_pipeline_box()
 
         self.reset_callback()
 
+        self.master.bind('<Key>', lambda a: self._key_press_callback(a))
+
         mainloop()
+
+    def _setup_menus(self, master):
+        menu = Menu(master)
+        master.config(menu=menu)
+
+        file_menu = Menu(menu)
+        menu.add_cascade(label='File', menu=file_menu)
+        file_menu.add_command(label='Open & Assemble ...', command=self._open_and_assemble)
+        file_menu.add_separator()
+        file_menu.add_command(label='Exit', command=master.quit)
+
+        help_menu = Menu(menu)
+        menu.add_cascade(label='Help', menu=help_menu)
+        help_menu.add_command(label='About', command=_about_window)
+
+    def _open_and_assemble(self):
+        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+        if filename != "":
+            assemble_again(filename)
+            self.risc_v.read_program_memory()
+            [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
+                _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
+            self.reset_callback()
+
+    def _key_press_callback(self, event):
+        key = event.keysym
+        if key == "F1":
+            self.step_callback()
+        elif key == "F2":
+            self.backstep_callback()
+        elif key == "F3":
+            self.reset_callback()
+
+    def refresh_pipeline_box(self):
+        self.if_inst.set(disassemble(self.risc_v.state.signals.if_signals.instruction) + "\n" + "0x{:08x}".format(
+            self.risc_v.state.signals.if_signals.instruction))
+        self.if_id_inst.set(disassemble(self.risc_v.state.pipe.if_id.instruction) + "\n" + "0x{:08x}".format(
+            self.risc_v.state.pipe.if_id.instruction))
+        self.id_ex_inst.set(disassemble(self.risc_v.state.pipe.id_ex.instruction) + "\n" + "0x{:08x}".format(
+            self.risc_v.state.pipe.id_ex.instruction))
+        self.ex_mem_inst.set(disassemble(self.risc_v.state.pipe.ex_mem.instruction) + "\n" + "0x{:08x}".format(
+            self.risc_v.state.pipe.ex_mem.instruction))
+        self.mem_wb_inst.set(disassemble(self.risc_v.state.pipe.mem_wb.instruction) + "\n" + "0x{:08x}".format(
+            self.risc_v.state.pipe.mem_wb.instruction))
+
+        self.id_branch_addr.set(str(self.risc_v.state.signals.id_signals.branch_address))
+        self.if_pc_in.set("" + str(self.risc_v.state.signals.if_signals.next_pc))
+        self.if_pc_out.set("" + str(self.risc_v.state.signals.if_signals.pc))
+        self.prog_mem_out.set("0x{:08x}".format(self.risc_v.state.signals.if_signals.instruction))
+        self.id_rs1.set(self.risc_v.state.signals.id_signals.rs1)
+        self.id_rs2.set(self.risc_v.state.signals.id_signals.rs2)
+        self.alu_left.set(self.risc_v.state.signals.ex_signals.alu_left_op)
+        self.alu_right.set(self.risc_v.state.signals.ex_signals.alu_right_op)
+        m = mas()
 
     def program_mem_yview_tie(self, *args):
         self.program_memory_box.yview_moveto(args[0])
@@ -235,8 +240,14 @@ class Screen:
 
     def refresh_register_file_box(self):
         for i in range(32):
+            value_before = self.register_file_entries[i].get()
+            value_now = str(self.risc_v.state.register_file[i])
             self.register_file_entries[i].delete(0, 'end')
             self.register_file_entries[i].insert(0, self.risc_v.state.register_file[i])
+            if value_before != value_now:
+                self.register_file_entries[i].config({"background": "Yellow"})
+            else:
+                self.register_file_entries[i].config({"background": "White"})
 
     def modify_data_memory(self):
         text = self.data_memory_box.get("1.0", END)
@@ -267,9 +278,10 @@ class Screen:
         for tag in self.program_memory_box.tag_names():
             self.program_memory_box.tag_delete(tag)
 
-        pc = int(self.risc_v.state.if_pc / 4)
+        pc = int(self.risc_v.state.signals.if_signals.pc / 4)
         value = disassemble(self.risc_v.memory[pc])
-        self.program_memory_box.tag_add("here", str(pc) + ".0", str(pc) + "." + str(len(value)))
+        row = pc + 1
+        self.program_memory_box.tag_add("here", str(row) + ".0", str(row) + "." + str(len(value)))
         self.program_memory_box.tag_config("here", background="green", foreground="yellow")
         self.program_memory_box.yview_moveto(p_mem_yview_old)
         self.program_memory_box.config(state=DISABLED)
@@ -300,15 +312,6 @@ class Screen:
         text = text[:-len("\n")]
         self.data_memory_box.insert(END, text)
 
-    def refresh_pipeline_box(self):
-        self.if_id_inst.set(disassemble(self.risc_v.state.pipe.if_id.instruction))
-        self.id_ex_inst.set(disassemble(self.risc_v.state.pipe.id_ex.instruction))
-        self.ex_mem_inst.set(disassemble(self.risc_v.state.pipe.ex_mem.instruction))
-        self.mem_wb_inst.set(disassemble(self.risc_v.state.pipe.mem_wb.instruction))
-
-        self.if_pc_in.set("" + str(self.risc_v.state.if_pc))
-        self.if_pc_out.set("" + str(self.risc_v.state.pipe.if_id.pc))
-
     def step_callback(self):
         self.modify_register_file()
         self.modify_data_memory()
@@ -318,6 +321,7 @@ class Screen:
         p_mem_yview_old = self.program_memory_box.yview()[0]
 
         self.risc_v.tick()
+        self.risc_v.calculate_signals()
 
         self.refresh_program_memory_box(p_mem_yview_old)
         self.refresh_register_file_box()
@@ -338,8 +342,14 @@ class Screen:
 
     def reset_callback(self):
         self.risc_v.reset()
+        self.risc_v.calculate_signals()
 
         self.refresh_register_file_box()
         self.refresh_data_memory_box()
         self.refresh_program_memory_box(0)
         self.refresh_pipeline_box()
+
+    def toggle_forwarding_callback(self):
+        self.pipe_graphics.toggle_forwarding(self.forwarding_enabled.get())
+        self.reset_callback()
+        self.risc_v.forwarding_enabled = self.forwarding_enabled.get()

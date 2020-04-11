@@ -1,5 +1,4 @@
 def read_program_mem(filename, mem):
-
     mem_list = []
     f = open(filename, "r")
 

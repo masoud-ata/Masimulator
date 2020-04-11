@@ -63,9 +63,9 @@ def disassemble(inst):
     if instruction.opcode() == LOAD:
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
     elif instruction.opcode() == STORE:
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
+        assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(instruction.imm_s())
     elif instruction.opcode() == ADDI:
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.rs2())
+        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
     elif instruction.opcode() == BEQ:
         assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(instruction.imm_sb())
     elif instruction.opcode() == R_FORMAT:
