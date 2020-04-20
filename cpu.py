@@ -119,6 +119,7 @@ class CpuState:
         self.register_file = [0] * 32
         self.pc = 0
         self.data_memory = [0] * 1024
+        self.hazard_detected = 0
 
     def reset(self):
         self.pipe = Pipeline()
@@ -126,6 +127,7 @@ class CpuState:
         self.register_file = [0] * 32
         self.pc = 0
         self.data_memory = [0] * 1024
+        self.hazard_detected = 0
 
 
 class CPU:
@@ -135,6 +137,7 @@ class CPU:
         self.state = CpuState()
         self.trace = []
         self.forwarding_enabled = 0
+        self.hazard_detection_enabled = 0
 
     def read_program_memory(self):
         self.memory = []
@@ -201,7 +204,13 @@ class CPU:
             self.state.signals.id_signals.control_mem_to_reg = 0
             self.state.signals.id_signals.control_is_branch = 0
 
-            if opcode == R_FORMAT:
+            self.state.hazard_detected = 0
+
+            if self.hazard_detection_enabled == 1 and self.state.pipe.id_ex.control_mem_read == 1 and \
+                (self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs1() or
+                 self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs2()):
+                self.state.hazard_detected = 1
+            elif opcode == R_FORMAT:
                 self.state.signals.id_signals.control_alu_op = 0b10
                 self.state.signals.id_signals.control_reg_write = 1
             elif opcode == ADDI:
@@ -303,9 +312,10 @@ class CPU:
             self.state.register_file[self.state.pipe.mem_wb.register_file_rd] = self.state.signals.wb_signals.rf_write_data
 
     def _register_if_id(self):
-        self.state.pipe.if_id.pc = self.state.signals.if_signals.pc
-        self.state.pipe.if_id.instruction = self.state.signals.if_signals.instruction
-        self.state.pc = self.state.signals.if_signals.next_pc
+        if self.state.hazard_detected == 0:
+            self.state.pipe.if_id.pc = self.state.signals.if_signals.pc
+            self.state.pipe.if_id.instruction = self.state.signals.if_signals.instruction
+            self.state.pc = self.state.signals.if_signals.next_pc
 
     def _register_id_ex(self):
         self.state.pipe.id_ex.register_file_data1 = self.state.signals.id_signals.rf_data1
@@ -321,7 +331,11 @@ class CPU:
         self.state.pipe.id_ex.control_mem_to_reg = self.state.signals.id_signals.control_mem_to_reg
         self.state.pipe.id_ex.sign_extended_immediate = self.state.signals.id_signals.sign_extended_immediate
         self.state.pipe.id_ex.alu_control = (self.state.signals.id_signals.instruction.funct7() & 0b100000) >> 2 | self.state.signals.id_signals.instruction.funct3()
-        self.state.pipe.id_ex.instruction = self.state.pipe.if_id.instruction
+
+        if self.state.hazard_detected == 1:
+            self.state.pipe.id_ex.instruction = Instruction(0).nop()
+        else:
+            self.state.pipe.id_ex.instruction = self.state.pipe.if_id.instruction
 
     def _register_ex_mem(self):
         self.state.pipe.ex_mem.control_mem_read = self.state.pipe.id_ex.control_mem_read

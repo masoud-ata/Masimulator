@@ -1,3 +1,5 @@
+    nop
+    nop
     lw $1, $0, 0            # loop counter
     lw $2, $0, 1
     lw $3, $0, 2            # loop limit

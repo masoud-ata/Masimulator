@@ -4,7 +4,6 @@ from disassembler import *
 from PIL import Image, ImageTk
 from cpu import *
 from pipeline_visual import PipelineGraphics
-from pipeline_visual import mas
 from tkinter import filedialog
 from rvi import assemble_again
 
@@ -18,13 +17,6 @@ def _setup_buttons(master, cpu_step, cpu_back, cpu_reset):
     back_button.grid(row=0, column=1, sticky=W)
     reset_button = Button(buttons_pane, text="Reset (F3)", command=cpu_reset)
     reset_button.grid(row=0, column=2, sticky=W)
-
-
-def _setup_check_buttons(master, forwarding_en, toggle_forwarding):
-    check_buttons_pane = ttk.Panedwindow(master, width=100, height=50)
-    check_buttons_pane.place(x=0, y=80)
-    c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=forwarding_en, command=toggle_forwarding)
-    c.grid(row=1, column=0, sticky=W)
 
 
 def _setup_register_file_entries(master):
@@ -120,10 +112,6 @@ def _about_window():
     messagebox.showinfo("About", "Created by MJ!")
 
 
-# def _open_window():
-#     master.filename = filedialog.askopenfilename(initialdir="/", title="Select file", filetypes=(("jpeg files", "*.jpg"), ("all files", "*.*")))
-
-
 class Screen:
     def __init__(self, width, height):
         self.risc_v = CPU()
@@ -137,7 +125,8 @@ class Screen:
         _setup_buttons(self.master, self.step_callback, self.backstep_callback, self.reset_callback)
 
         self.forwarding_enabled = IntVar()
-        _setup_check_buttons(self.master, self.forwarding_enabled, self.toggle_forwarding_callback)
+        self.hazard_detection_enabled = IntVar()
+        self._setup_check_buttons()
 
         self.register_file_entries = _setup_register_file_entries(self.master)
         [self.data_memory_box, self.data_memory_address_box, self.data_mem_scrollbar] = \
@@ -147,9 +136,6 @@ class Screen:
             _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
 
         self.pipe_graphics = PipelineGraphics(self.master)
-        [self.if_inst, self.if_id_inst, self.id_ex_inst, self.ex_mem_inst,
-         self.mem_wb_inst, self.if_pc_in, self.if_pc_out, self.prog_mem_out, self.id_branch_addr,
-         self.id_rs1, self.id_rs2, self.alu_left, self.alu_right] = self.pipe_graphics.setup_pipeline_box()
 
         self.reset_callback()
 
@@ -180,6 +166,16 @@ class Screen:
                 _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
 
+    def _setup_check_buttons(self):
+        check_buttons_pane = ttk.Panedwindow(self.master, width=100, height=50)
+        check_buttons_pane.place(x=0, y=80)
+
+        c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=self.forwarding_enabled, command=self.toggle_forwarding_callback)
+        c.grid(row=1, column=0, sticky=W)
+
+        c = Checkbutton(check_buttons_pane, text="Enable hazard detection", variable=self.hazard_detection_enabled, command=self.toggle_hazard_detection_callback)
+        c.grid(row=2, column=0, sticky=W)
+
     def _key_press_callback(self, event):
         key = event.keysym
         if key == "F1":
@@ -190,26 +186,7 @@ class Screen:
             self.reset_callback()
 
     def refresh_pipeline_box(self):
-        self.if_inst.set(disassemble(self.risc_v.state.signals.if_signals.instruction) + "\n" + "0x{:08x}".format(
-            self.risc_v.state.signals.if_signals.instruction))
-        self.if_id_inst.set(disassemble(self.risc_v.state.pipe.if_id.instruction) + "\n" + "0x{:08x}".format(
-            self.risc_v.state.pipe.if_id.instruction))
-        self.id_ex_inst.set(disassemble(self.risc_v.state.pipe.id_ex.instruction) + "\n" + "0x{:08x}".format(
-            self.risc_v.state.pipe.id_ex.instruction))
-        self.ex_mem_inst.set(disassemble(self.risc_v.state.pipe.ex_mem.instruction) + "\n" + "0x{:08x}".format(
-            self.risc_v.state.pipe.ex_mem.instruction))
-        self.mem_wb_inst.set(disassemble(self.risc_v.state.pipe.mem_wb.instruction) + "\n" + "0x{:08x}".format(
-            self.risc_v.state.pipe.mem_wb.instruction))
-
-        self.id_branch_addr.set(str(self.risc_v.state.signals.id_signals.branch_address))
-        self.if_pc_in.set("" + str(self.risc_v.state.signals.if_signals.next_pc))
-        self.if_pc_out.set("" + str(self.risc_v.state.signals.if_signals.pc))
-        self.prog_mem_out.set("0x{:08x}".format(self.risc_v.state.signals.if_signals.instruction))
-        self.id_rs1.set(self.risc_v.state.signals.id_signals.rs1)
-        self.id_rs2.set(self.risc_v.state.signals.id_signals.rs2)
-        self.alu_left.set(self.risc_v.state.signals.ex_signals.alu_left_op)
-        self.alu_right.set(self.risc_v.state.signals.ex_signals.alu_right_op)
-        m = mas()
+        self.pipe_graphics.refresh_pipeline(self.risc_v)
 
     def program_mem_yview_tie(self, *args):
         self.program_memory_box.yview_moveto(args[0])
@@ -351,5 +328,10 @@ class Screen:
 
     def toggle_forwarding_callback(self):
         self.pipe_graphics.toggle_forwarding(self.forwarding_enabled.get())
-        self.reset_callback()
+        #self.reset_callback()
         self.risc_v.forwarding_enabled = self.forwarding_enabled.get()
+
+    def toggle_hazard_detection_callback(self):
+        self.pipe_graphics.toggle_hazard_detection(self.hazard_detection_enabled.get())
+        self.reset_callback()
+        self.risc_v.hazard_detection_enabled = self.hazard_detection_enabled.get()

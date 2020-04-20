@@ -29,7 +29,7 @@ class Instruction:
         return imm
 
     def imm_s(self):
-        imm = (self.funct7() << 7) | self.rd()
+        imm = (self.funct7() << 5) | self.rd()
         imm = self._negative_fix(imm, 12)
         return imm
 
@@ -37,6 +37,13 @@ class Instruction:
         imm = ((self.funct7() >> 6) << 11) | ((self.rd() & 0b1) << 10) | ((self.funct7() & 0b0111111) << 4) | (self.rd() >> 1)
         imm = self._negative_fix(imm, 12)
         return imm
+
+    def nop(self):
+        return 0x13
+
+    def is_nop(self):
+        return self.word == self.nop()
+
 
 def disassemble(inst):
     instruction = Instruction(inst)
@@ -60,7 +67,9 @@ def disassemble(inst):
     except KeyError:
         assembly_code = ""
 
-    if instruction.opcode() == LOAD:
+    if instruction.is_nop():
+        assembly_code = "nop"
+    elif instruction.opcode() == LOAD:
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
     elif instruction.opcode() == STORE:
         assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(instruction.imm_s())

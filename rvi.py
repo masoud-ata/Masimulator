@@ -42,12 +42,24 @@ def get_arguments():
 
 def assemble():
     args = get_arguments()
-    infile = args.INFILE
-    return parse_input(infile, **vars(args))
+    assembly_file = args.INFILE
+    temp_assembly_file = replace_nop_with_addi(assembly_file)
+    return parse_input(temp_assembly_file, **vars(args))
 
 
 def assemble_again(assembly_file):
     args = get_arguments()
-    args.INFILE = assembly_file
-    infile = assembly_file
-    return parse_input(infile, **vars(args))
+    assembly_file = assembly_file
+    temp_assembly_file = replace_nop_with_addi(assembly_file)
+    return parse_input(temp_assembly_file, **vars(args))
+
+
+def replace_nop_with_addi(assembly_file):
+    with open(assembly_file) as f:
+        newText = f.read().replace('nop', 'addi $0, $0, 0')
+
+    temp_assembly_file = "examples/tmp.rvi"
+    with open(temp_assembly_file, "w") as f:
+        f.write(newText)
+
+    return temp_assembly_file

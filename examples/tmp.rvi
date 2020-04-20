@@ -1,11 +1,11 @@
     lw $9, $0, 0
     add $10, $9, $10
     addi $8, $0, -1
-    nop
+    addi $0, $0, 0
     lw $12, $0, 0
     add $10, $12, $10
     sw $0, $8, 0
-    nop
+    addi $0, $0, 0
     addi $1, $0, 0              # loop counter
     addi $2, $0, 1
     addi $3, $0, 9              # loop limit
@@ -13,21 +13,21 @@
     addi $5, $0, 1              # fibonacci no. 2
 LOOP:
     addi $1, $1, 1              # counter++
-    nop
-    nop
+    addi $0, $0, 0
+    addi $0, $0, 0
     beq $3, $1, DONE            # if counter == loop limit then done!
-    nop
+    addi $0, $0, 0
     add $4, $4, $5
     add $5, $5, $4
     beq $0, $0, LOOP            # jump
 DONE:
-    nop
-    nop
-    nop
+    addi $0, $0, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
     sw $0, $4, 6
     sw $0, $5, 7
-    nop
-    nop
-    nop
-    nop
-    nop
+    addi $0, $0, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
