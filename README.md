@@ -16,3 +16,8 @@ It is possible to load new assembly files into the program memory by going throu
 
 
 ![](images/sample_window.png)
+
+# RISC-V assembler
+The simulator uses the RISCV-RV32I-Assembler provided in the following repository, which is integrated into this project:
+https://github.com/metastableB/RISCV-RV32I-Assembler
+
