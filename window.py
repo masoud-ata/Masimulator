@@ -4,7 +4,7 @@ from disassembler import *
 from cpu import *
 from pipeline_visual import PipelineGraphics
 from tkinter import filedialog
-from assembler.rvi import assemble_again
+from assembler.rvi import assemble
 import webbrowser
 from tkinter import font
 import tkinter as tk
@@ -185,7 +185,7 @@ class Screen:
     def _open_and_assemble(self):
         filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
         if filename != "":
-            assemble_again(filename)
+            assemble(filename)
             self.risc_v.read_program_memory()
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
                 _setup_program_mem_box(self.main_window, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)

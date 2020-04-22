@@ -6,7 +6,6 @@
 
 from assembler.lib.parser import parse_input
 import argparse
-from argparse import Namespace
 
 
 VERSION = 0.1
@@ -40,16 +39,21 @@ def get_arguments():
     return args
 
 
-def assemble():
-    args = get_arguments()
-    assembly_file = args.INFILE
-    temp_assembly_file = replace_nop_with_addi(assembly_file)
-    return parse_input(temp_assembly_file, **vars(args))
+def preset_args(assembly_file):
+    args = argparse.Namespace()
+    args.INFILE = assembly_file
+    args.echo = False
+    args.echo_symbols = False
+    args.hex = False
+    args.no_32 = False
+    args.no_color = False
+    args.outfile = 'mem.txt'
+    args.tokenize = False
+    return args
 
 
-def assemble_again(assembly_file):
-    args = get_arguments()
-    assembly_file = assembly_file
+def assemble(assembly_file):
+    args = preset_args(assembly_file)
     temp_assembly_file = replace_nop_with_addi(assembly_file)
     return parse_input(temp_assembly_file, **vars(args))
 

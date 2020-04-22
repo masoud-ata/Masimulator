@@ -1,11 +1,3 @@
-    lw $9, $0, 0
-    add $10, $9, $10
-    addi $8, $0, -1
-    nop
-    lw $12, $0, 0
-    add $10, $12, $10
-    sw $0, $8, 0
-    nop
     addi $1, $0, 0              # loop counter
     addi $2, $0, 1
     addi $3, $0, 9              # loop limit
