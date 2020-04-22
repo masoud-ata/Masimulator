@@ -5,8 +5,8 @@
 # Conver the tokenized assembly instruction to
 # corresponding machine code
 
-from lib.cprint import cprint as cp
-from lib.machinecodeconst import MachineCodeConst
+from assembler.lib.cprint import cprint as cp
+from assembler.lib.machinecodeconst import MachineCodeConst
 
 
 class MachineCodeGenerator:

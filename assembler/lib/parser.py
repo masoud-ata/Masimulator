@@ -7,11 +7,11 @@
 import ply.yacc as yacc
 import sys
 # This is required by design
-from lib.tokenizer import tokens
-from lib.tokenizer import reset_lineno
-from lib.machinecodegen import mcg
-from lib.cprint import cprint as cp
-from lib.machinecodeconst import MachineCodeConst
+from assembler.lib.tokenizer import tokens
+from assembler.lib.tokenizer import reset_lineno
+from assembler.lib.machinecodegen import mcg
+from assembler.lib.cprint import cprint as cp
+from assembler.lib.machinecodeconst import MachineCodeConst
 from pprint import pprint
 
 mcc = MachineCodeConst()

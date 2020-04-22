@@ -9,7 +9,7 @@
 # http://www.dabeaz.com/ply/ply.html
 # for its documentation.
 import ply.lex as lex
-from lib.machinecodeconst import MachineCodeConst
+from assembler.lib.machinecodeconst import MachineCodeConst
 
 mcc = MachineCodeConst()
 # List of token names. This is always required

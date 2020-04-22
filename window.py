@@ -1,11 +1,13 @@
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from disassembler import *
-from PIL import Image, ImageTk
 from cpu import *
 from pipeline_visual import PipelineGraphics
 from tkinter import filedialog
-from rvi import assemble_again
+from assembler.rvi import assemble_again
+import webbrowser
+from tkinter import font
+import tkinter as tk
 
 
 def _setup_buttons(master, cpu_step, cpu_back, cpu_reset):
@@ -108,40 +110,63 @@ def _setup_program_mem_box(master, program_memory, program_mem_yview, program_me
     return [mem_text, mem_addr_text, scrollbar]
 
 
-def _about_window():
-    messagebox.showinfo("About", "Created by MJ!")
-
-
 class Screen:
     def __init__(self, width, height):
         self.risc_v = CPU()
         self.register_file_entries = []
 
-        self.master = Tk()
-        self.master.wm_title("RISC-V Masimulator")
-        self.master.geometry(width + "x" + height)
+        self.main_window = Tk()
+        self.main_window.wm_title("RISC-V Masimulator")
+        self.main_window.geometry(width + "x" + height)
 
-        self._setup_menus(self.master)
-        _setup_buttons(self.master, self.step_callback, self.backstep_callback, self.reset_callback)
+        self._setup_menus(self.main_window)
+        _setup_buttons(self.main_window, self.step_callback, self.backstep_callback, self.reset_callback)
 
         self.forwarding_enabled = IntVar()
         self.hazard_detection_enabled = IntVar()
         self._setup_check_buttons()
 
-        self.register_file_entries = _setup_register_file_entries(self.master)
+        self.register_file_entries = _setup_register_file_entries(self.main_window)
         [self.data_memory_box, self.data_memory_address_box, self.data_mem_scrollbar] = \
-            _setup_data_mem_box(self.master, self.risc_v.state.data_memory, self.data_mem_yview,
+            _setup_data_mem_box(self.main_window, self.risc_v.state.data_memory, self.data_mem_yview,
                                 self.data_mem_yview_tie)
         [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
-            _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
+            _setup_program_mem_box(self.main_window, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
 
-        self.pipe_graphics = PipelineGraphics(self.master)
+        self.pipe_graphics = PipelineGraphics(self.main_window)
 
         self.reset_callback()
 
-        self.master.bind('<Key>', lambda a: self._key_press_callback(a))
+        self.main_window.bind('<Key>', lambda a: self._key_press_callback(a))
 
         mainloop()
+
+    def _about_window(self):
+        about_window = Toplevel(self.main_window)
+        about_window.wm_title("About")
+        about_window.geometry("300" + "x" + "100")
+
+        def callback(url):
+            webbrowser.open_new(url)
+
+        link1 = Label(about_window, text="Masimulator by Mohammad Attari")
+        link1.pack()
+
+        link1 = Label(about_window, text="Masimulator on GitHub", fg="blue", cursor="hand2")
+        link1.pack()
+        link1.bind("<Button-1>", lambda e: callback("https://github.com/masoud-ata/Masimulator"))
+        f = tk.font.Font(link1, link1.cget("font"))
+        f.configure(underline=True)
+        link1.configure(font=f)
+
+        link1 = Label(about_window, text="RISCV-RV32I-Assembler by Don Dennis")
+        link1.pack()
+        link2 = Label(about_window, text="RISCV-RV32I-Assembler on GitHub", fg="blue", cursor="hand2")
+        link2.pack()
+        link2.bind("<Button-1>", lambda e: callback("https://github.com/metastableB/RISCV-RV32I-Assembler"))
+        f = tk.font.Font(link2, link2.cget("font"))
+        f.configure(underline=True)
+        link2.configure(font=f)
 
     def _setup_menus(self, master):
         menu = Menu(master)
@@ -155,7 +180,7 @@ class Screen:
 
         help_menu = Menu(menu)
         menu.add_cascade(label='Help', menu=help_menu)
-        help_menu.add_command(label='About', command=_about_window)
+        help_menu.add_command(label='About', command=self._about_window)
 
     def _open_and_assemble(self):
         filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
@@ -163,11 +188,11 @@ class Screen:
             assemble_again(filename)
             self.risc_v.read_program_memory()
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
-                _setup_program_mem_box(self.master, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
+                _setup_program_mem_box(self.main_window, self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
 
     def _setup_check_buttons(self):
-        check_buttons_pane = ttk.Panedwindow(self.master, width=100, height=50)
+        check_buttons_pane = ttk.Panedwindow(self.main_window, width=100, height=50)
         check_buttons_pane.place(x=0, y=80)
 
         c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=self.forwarding_enabled, command=self.toggle_forwarding_callback)

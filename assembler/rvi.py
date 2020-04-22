@@ -4,7 +4,7 @@
 #
 # The RISC-V assembler for subset of instructions.
 
-from lib.parser import parse_input
+from assembler.lib.parser import parse_input
 import argparse
 from argparse import Namespace
 

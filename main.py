@@ -1,5 +1,5 @@
 from window import Screen
-from rvi import assemble
+from assembler.rvi import assemble
 
 
 assemble()
