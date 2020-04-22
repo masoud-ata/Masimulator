@@ -4,6 +4,14 @@ https://www.amazon.com/gp/product/0128122757/ref=dbs_a_def_rwt_bibl_vppi_i2
 
 For now it supports only a handful of instructions, such as ADD, ADDI, SUB, LW, SW, and BEQ, but this is enough to show the functionality of a pipeline for a lab setting. The pipeline supports forwarding and hazard detection, which can be enabled and disabled to observe the difference.
 
+#How to run
+If you have all the required packages (such as Tkinter) then just use the following in your command line, or run main.py in your IDE of choice:
+
+python main.py
+
+The simulator has been tested on Windows 10 with Python 3.6
+
+
 # Simulator's main window
 Below is an image of the simulator's window showing the pipeline with forwarding and hazard detection activated.
 The register file, data memory, and program memory are arranged from left to right. 
