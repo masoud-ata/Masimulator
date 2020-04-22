@@ -8,7 +8,7 @@ For now it supports only a handful of instructions, such as ADD, SUB, LW, SW, an
 Below is an image of the simulator's window showing the pipeline with forwarding and hazard detection activated.
 The register file, data memory, and program memory are arranged from left to right. 
 
-The register file and data memory are modifiable so functionality can be easily tested. The current instruction (in Fetch stage) is shown in green in the program memory. Changes to the register file and data memory are shown in color in their respective window.
+The register file and data memory are modifiable so functionality can be easily tested. The current instruction (in Fetch stage) is shown in green in the program memory. Changes to the register file and data memory are shown in color in their respective windows.
 
 There are 3 buttons on the top left, allwoing to step/backstep through the code and to restart the processor.
 
