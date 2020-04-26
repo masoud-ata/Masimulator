@@ -1,3 +1,11 @@
+class BranchTypes:
+    BEQ = 0b000
+    BNE = 0b001
+    BLT = 0b100
+    BGE = 0b101
+    BLTU = 0b110
+    BGEU = 0b111
+
 class Instruction:
     def __init__(self, inst):
         self.word = inst
@@ -52,12 +60,12 @@ def disassemble(inst):
     ADDI = 0b0010011
     LOAD = 0b0000011
     STORE = 0b0100011
-    BEQ = 0b1100011
+    BRANCH = 0b1100011
 
     dic = {
         LOAD: "lw",
         STORE: "sw",
-        BEQ: "beq",
+        BRANCH: "",
         ADDI: "addi",
         R_FORMAT: ""
     }
@@ -70,12 +78,24 @@ def disassemble(inst):
     if instruction.is_nop():
         assembly_code = "nop"
     elif instruction.opcode() == LOAD:
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
+        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + "(" + str(instruction.imm_i()) + ")"
     elif instruction.opcode() == STORE:
-        assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(instruction.imm_s())
+        assembly_code = assembly_code + " $" + str(instruction.rs2()) + ", $" + str(instruction.rs1()) + "(" + str(instruction.imm_s()) + ")"
     elif instruction.opcode() == ADDI:
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
-    elif instruction.opcode() == BEQ:
+    elif instruction.opcode() == BRANCH:
+        if instruction.funct3() == BranchTypes.BEQ:
+            assembly_code = "beq"
+        elif instruction.funct3() == BranchTypes.BNE:
+            assembly_code = "bne"
+        elif instruction.funct3() == BranchTypes.BLT:
+            assembly_code = "blt"
+        elif instruction.funct3() == BranchTypes.BGE:
+            assembly_code = "bge"
+        elif instruction.funct3() == BranchTypes.BLTU:
+            assembly_code = "bltu"
+        elif instruction.funct3() == BranchTypes.BGEU:
+            assembly_code = "bgeu"
         assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(instruction.imm_sb())
     elif instruction.opcode() == R_FORMAT:
         alu_control = (instruction.funct7() & 0b100000) >> 2 | instruction.funct3()

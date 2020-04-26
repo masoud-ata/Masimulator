@@ -9,3 +9,9 @@ def read_program_mem(filename, mem):
 
     for element in mem_list:
         mem.append(int(element, 2))
+
+
+def to_unsigned(val, bits):
+    if 0 > val >= -2 ** (bits - 1):
+        val = 2**bits + val
+    return val

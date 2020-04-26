@@ -1,12 +1,25 @@
-    addi $3, $0, 100
-    addi $0, $0, 0
-    addi $0, $0, 0
+    lw $1, $0, 60
+    addi $1, $1, 1
+    addi $1, $0, 0              # loop counter
+    addi $2, $0, 1
+    addi $3, $0, 9              # loop limit
+    addi $4, $0, 1              # fibonacci no. 1
+    addi $5, $0, 1              # fibonacci no. 2
 LOOP:
-    beq $3, $1, DONE            # if counter == loop limit then done!
     addi $1, $1, 1              # counter++
-    sw $1, $1, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
+    beq $3, $1, DONE            # if counter == loop limit then done!
+    addi $0, $0, 0
+    add $4, $4, $5
+    add $5, $5, $4
     beq $0, $0, LOOP            # jump
 DONE:
+    addi $0, $0, 0
+    addi $0, $0, 0
+    addi $0, $0, 0
+    sw $0, $4, 6
+    sw $0, $5, 7
     addi $0, $0, 0
     addi $0, $0, 0
     addi $0, $0, 0

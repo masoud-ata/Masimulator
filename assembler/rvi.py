@@ -6,6 +6,7 @@
 
 from assembler.lib.parser import parse_input
 import argparse
+import re
 
 
 VERSION = 0.1
@@ -55,15 +56,63 @@ def preset_args(assembly_file):
 def assemble(assembly_file):
     args = preset_args(assembly_file)
     temp_assembly_file = replace_nop_with_addi(assembly_file)
+    temp_assembly_file = replace_nice_looking_stores(temp_assembly_file)
+    temp_assembly_file = replace_nice_looking_loads(temp_assembly_file)
     return parse_input(temp_assembly_file, **vars(args))
 
 
 def replace_nop_with_addi(assembly_file):
     with open(assembly_file) as f:
         newText = f.read().replace('nop', 'addi $0, $0, 0')
-
     temp_assembly_file = "examples/tmp.rvi"
     with open(temp_assembly_file, "w") as f:
         f.write(newText)
-
     return temp_assembly_file
+
+
+def replace_nice_looking_stores(assembly_file):
+    in_file = open(assembly_file, 'r')
+    lines = in_file.readlines()
+    lines_2_write = []
+
+    for l in lines:
+        sw_pos = l.find('sw')
+        if sw_pos > 0:
+            rs1 = 0
+            rs2 = 1
+            imm = 2
+            numbers = re.findall("[-\d]+", l)
+            l = " " * sw_pos + "sw " + "$" + str(numbers[rs2]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
+        lines_2_write.append(l)
+    in_file.close()
+
+    out_file = open(assembly_file, "w")
+    for line in lines_2_write:
+        out_file.write(line)
+    out_file.close()
+
+    return assembly_file
+
+
+def replace_nice_looking_loads(assembly_file):
+    in_file = open(assembly_file, 'r')
+    lines = in_file.readlines()
+    lines_2_write = []
+
+    for l in lines:
+        lw_pos = l.find('lw')
+        if lw_pos > 0:
+            rd = 0
+            rs1 = 1
+            imm = 2
+            numbers = re.findall("[-\d]+", l)
+            l = " " * lw_pos + "lw " + "$" + str(numbers[rd]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
+        lines_2_write.append(l)
+    in_file.close()
+
+    out_file = open(assembly_file, "w")
+    for line in lines_2_write:
+        out_file.write(line)
+    out_file.close()
+
+    return assembly_file

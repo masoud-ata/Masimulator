@@ -1,3 +1,4 @@
+    addi $1, $1, 1
     addi $1, $0, 0              # loop counter
     addi $2, $0, 1
     addi $3, $0, 9              # loop limit
@@ -16,8 +17,8 @@ DONE:
     nop
     nop
     nop
-    sw $0, $4, 6
-    sw $0, $5, 7
+    sw $4, $0(6)
+    sw $5, $0(7)
     nop
     nop
     nop

@@ -1,5 +1,5 @@
-from disassembler import Instruction
-from utils import read_program_mem
+from disassembler import Instruction, BranchTypes
+from utils import read_program_mem, to_unsigned
 import copy
 
 
@@ -18,6 +18,10 @@ class IdSignals:
         self.rf_data1 = 0
         self.rf_data2 = 0
         self.zero_flag = 0
+        self.less_than_flag = 0
+        self.greater_than_equal_flag = 0
+        self.less_than_unsigned_flag = 0
+        self.greater_than_equal_unsigned_flag = 0
         self.control_alu_op = 0
         self.control_alu_src = 0
         self.control_mem_read = 0
@@ -193,9 +197,8 @@ class CPU:
             ADDI = 0b0010011
             LOAD = 0b0000011
             STORE = 0b0100011
-            BEQ = 0b1100011
+            BRANCH = 0b1100011
 
-            self.state.signals.id_signals.zero_flag = 0
             self.state.signals.id_signals.control_alu_op = 0
             self.state.signals.id_signals.control_alu_src = 0
             self.state.signals.id_signals.control_mem_read = 0
@@ -225,9 +228,31 @@ class CPU:
             elif opcode == STORE:
                 self.state.signals.id_signals.control_alu_src = 1
                 self.state.signals.id_signals.control_mem_write = 1
-            elif opcode == BEQ:
-                self.state.signals.id_signals.control_alu_op = 0b01
+            elif opcode == BRANCH:
                 self.state.signals.id_signals.control_is_branch = 1
+
+        def handle_branch():
+            self.state.signals.id_signals.branch_address = self.state.pipe.if_id.pc + (self.state.signals.id_signals.sign_extended_immediate << 1)
+            self.state.signals.id_signals.zero_flag = (self.state.signals.id_signals.rf_data1 == self.state.signals.id_signals.rf_data2)
+            self.state.signals.id_signals.less_than_flag = (self.state.signals.id_signals.rf_data1 < self.state.signals.id_signals.rf_data2)
+            self.state.signals.id_signals.greater_than_equal_flag = (self.state.signals.id_signals.rf_data1 >= self.state.signals.id_signals.rf_data2)
+            self.state.signals.id_signals.less_than_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) < to_unsigned(self.state.signals.id_signals.rf_data2, 32))
+            self.state.signals.id_signals.greater_than_equal_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) >= to_unsigned(self.state.signals.id_signals.rf_data2, 32))
+            branch_type = Instruction(self.state.pipe.if_id.instruction).funct3()
+            self.state.signals.id_signals.control_branch_taken = 0
+            if self.state.signals.id_signals.control_is_branch:
+                if branch_type == BranchTypes.BEQ and self.state.signals.id_signals.zero_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
+                elif branch_type == BranchTypes.BNE and not self.state.signals.id_signals.zero_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
+                elif branch_type == BranchTypes.BLT and self.state.signals.id_signals.less_than_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
+                elif branch_type == BranchTypes.BGE and self.state.signals.id_signals.greater_than_equal_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
+                elif branch_type == BranchTypes.BLTU and self.state.signals.id_signals.less_than_unsigned_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
+                elif branch_type == BranchTypes.BGEU and self.state.signals.id_signals.greater_than_equal_unsigned_flag:
+                    self.state.signals.id_signals.control_branch_taken = 1
 
         self.state.signals.id_signals.instruction = Instruction(self.state.pipe.if_id.instruction)
         self.state.signals.id_signals.rs1 = self.state.signals.id_signals.instruction.rs1()
@@ -236,9 +261,7 @@ class CPU:
         self.state.signals.id_signals.rf_data2 = self.state.register_file[self.state.signals.id_signals.rs2]
         imm_generation(self.state.signals.id_signals.instruction)
         control(self.state.signals.id_signals.instruction.opcode())
-        self.state.signals.id_signals.zero_flag = (self.state.signals.id_signals.rf_data1 == self.state.signals.id_signals.rf_data2)
-        self.state.signals.id_signals.branch_address = self.state.pipe.if_id.pc + (self.state.signals.id_signals.sign_extended_immediate << 1)
-        self.state.signals.id_signals.control_branch_taken = self.state.signals.id_signals.control_is_branch and self.state.signals.id_signals.zero_flag
+        handle_branch()
 
     def _calc_ex_signals(self):
         def alu_control():
