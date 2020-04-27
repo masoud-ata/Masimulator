@@ -264,13 +264,13 @@ class CPU:
         handle_branch()
 
     def _calc_ex_signals(self):
+        ALU_AND = 0b000
+        ALU_OR = 0b001
+        ALU_ADD = 0b010
+        ALU_SUB = 0b110
+        ALU_SLT = 0b011
         def alu_control():
-            ALU_AND = 0b000
-            ALU_OR = 0b001
-            ALU_ADD = 0b010
-            ALU_SUB = 0b110
             ex_alu_control = ALU_AND
-
             if self.state.pipe.id_ex.control_alu_op == 0b00:
                 ex_alu_control = ALU_ADD
             elif self.state.pipe.id_ex.control_alu_op == 0b01:
@@ -283,21 +283,23 @@ class CPU:
                 ex_alu_control = ALU_AND
             elif self.state.pipe.id_ex.alu_control == 0b0110:
                 ex_alu_control = ALU_OR
-
+            elif self.state.pipe.id_ex.alu_control == 0b0010:
+                ex_alu_control = ALU_SLT
             return ex_alu_control
 
         def alu(control, left, right):
-            if control == 0b000:
+            if control == ALU_AND:
                 ex_alu_result = left & right
-            elif control == 0b001:
+            elif control == ALU_OR:
                 ex_alu_result = left | right
-            elif control == 0b010:
+            elif control == ALU_ADD:
                 ex_alu_result = left + right
-            elif control == 0b110:
+            elif control == ALU_SUB:
                 ex_alu_result = left - right
+            elif control == ALU_SLT:
+                ex_alu_result = 1 if left < right else 0
             else:
                 ex_alu_result = left & right
-
             return ex_alu_result
 
         def forward_stuff():

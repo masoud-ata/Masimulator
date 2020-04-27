@@ -17,8 +17,8 @@ DONE:
     nop
     nop
     nop
-    sw $4, $0(6)
-    sw $5, $0(7)
+    sw $4, 6($0)
+    sw $5, 7($0)
     nop
     nop
     nop

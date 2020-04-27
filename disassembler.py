@@ -78,9 +78,9 @@ def disassemble(inst):
     if instruction.is_nop():
         assembly_code = "nop"
     elif instruction.opcode() == LOAD:
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + "(" + str(instruction.imm_i()) + ")"
+        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.imm_i()) + "(" + str(instruction.rs1()) + ")"
     elif instruction.opcode() == STORE:
-        assembly_code = assembly_code + " $" + str(instruction.rs2()) + ", $" + str(instruction.rs1()) + "(" + str(instruction.imm_s()) + ")"
+        assembly_code = assembly_code + " $" + str(instruction.rs2()) + ", $" + str(instruction.imm_s()) + "(" + str(instruction.rs1()) + ")"
     elif instruction.opcode() == ADDI:
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(instruction.imm_i())
     elif instruction.opcode() == BRANCH:
@@ -107,6 +107,8 @@ def disassemble(inst):
             assembly_code = "and"
         elif alu_control == 0b0110:
             assembly_code = "or"
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs2()) + ", $" + str(instruction.rs1())
+        elif alu_control == 0b0010:
+            assembly_code = "slt"
+        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", $" + str(instruction.rs2())
 
     return assembly_code

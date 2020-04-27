@@ -79,8 +79,8 @@ def replace_nice_looking_stores(assembly_file):
         sw_pos = l.find('sw')
         if sw_pos > 0:
             rs1 = 0
-            rs2 = 1
-            imm = 2
+            rs2 = 2
+            imm = 1
             numbers = re.findall("[-\d]+", l)
             l = " " * sw_pos + "sw " + "$" + str(numbers[rs2]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
         lines_2_write.append(l)
@@ -103,8 +103,8 @@ def replace_nice_looking_loads(assembly_file):
         lw_pos = l.find('lw')
         if lw_pos > 0:
             rd = 0
-            rs1 = 1
-            imm = 2
+            rs1 = 2
+            imm = 1
             numbers = re.findall("[-\d]+", l)
             l = " " * lw_pos + "lw " + "$" + str(numbers[rd]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
         lines_2_write.append(l)
