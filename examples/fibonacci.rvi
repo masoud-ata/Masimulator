@@ -9,14 +9,10 @@ LOOP:
     nop
     nop
     beq $3, $1, DONE            # if counter == loop limit then done!
-    nop
     add $4, $4, $5
     add $5, $5, $4
     beq $0, $0, LOOP            # jump
 DONE:
-    nop
-    nop
-    nop
     sw $4, 6($0)
     sw $5, 7($0)
     nop

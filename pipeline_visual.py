@@ -66,6 +66,16 @@ class PipelineGraphics:
         else:
             self.hazard_detected_image.place_forget()
 
+        self._refresh_instructions(processor)
+        self._refresh_if_signals(processor)
+        self._refresh_id_signals(processor)
+        self._refresh_ex_signals(processor)
+        self._refresh_mem_signals(processor)
+        self._refresh_wb_signals(processor)
+
+    def _refresh_instructions(self, processor):
+        self._color_inserted_nops(processor)
+
         self.if_instruction.set(disassemble(processor.state.signals.if_signals.instruction) + "\n" + "0x{:08x}".format(
             processor.state.signals.if_signals.instruction))
         self.id_instruction.set(disassemble(processor.state.pipe.if_id.instruction) + "\n" + "0x{:08x}".format(
@@ -77,6 +87,21 @@ class PipelineGraphics:
         self.wb_instruction.set(disassemble(processor.state.pipe.mem_wb.instruction) + "\n" + "0x{:08x}".format(
             processor.state.pipe.mem_wb.instruction))
 
+    def _color_inserted_nops(self, processor):
+        self.id_instruction_label.config(fg="black")
+        self.ex_instruction_label.config(fg="black")
+        self.mem_instruction_label.config(fg="black")
+        self.wb_instruction_label.config(fg="black")
+        if processor.state.pipe.if_id.nop_inserted:
+            self.id_instruction_label.config(fg="red")
+        if processor.state.pipe.id_ex.nop_inserted:
+            self.ex_instruction_label.config(fg="red")
+        if processor.state.pipe.ex_mem.nop_inserted:
+            self.mem_instruction_label.config(fg="red")
+        if processor.state.pipe.mem_wb.nop_inserted:
+            self.wb_instruction_label.config(fg="red")
+
+    def _refresh_if_signals(self, processor):
         self.if_pc_mux_1.set("" + str(processor.state.signals.if_signals.pc + 4))
         self.if_pc_mux_2.set(str(processor.state.signals.id_signals.branch_address))
         self.if_pc_in.set("" + str(processor.state.signals.if_signals.next_pc))
@@ -84,6 +109,7 @@ class PipelineGraphics:
         self.if_pc_out_plus_4.set("" + str(processor.state.signals.if_signals.pc + 4))
         self.if_program_mem_out.set("0x{:08x}".format(processor.state.signals.if_signals.instruction))
 
+    def _refresh_id_signals(self, processor):
         self.id_pc.set(processor.state.pipe.if_id.pc)
         self.id_imm.set(processor.state.signals.id_signals.sign_extended_immediate)
         self.id_imm_to_ex.set(processor.state.signals.id_signals.sign_extended_immediate)
@@ -96,6 +122,7 @@ class PipelineGraphics:
         self.id_rf_read_2.set(processor.state.signals.id_signals.rf_data2)
         self.id_rd.set(processor.state.signals.id_signals.instruction.rd())
 
+    def _refresh_ex_signals(self, processor):
         self.ex_rf_data1.set(processor.state.pipe.id_ex.register_file_data1)
         self.ex_rf_data2.set(processor.state.pipe.id_ex.register_file_data2)
         self.ex_imm.set(processor.state.pipe.id_ex.sign_extended_immediate)
@@ -110,12 +137,14 @@ class PipelineGraphics:
         self.ex_rf_data2_to_mem_stage.set(processor.state.signals.ex_signals.right_forward_out)
         self.ex_rd.set(processor.state.pipe.id_ex.register_file_rd)
 
+    def _refresh_mem_signals(self, processor):
         self.mem_address.set(processor.state.pipe.ex_mem.alu_result)
         self.mem_alu_result_to_wb.set(processor.state.pipe.ex_mem.alu_result)
         self.mem_write_data.set(processor.state.pipe.ex_mem.register_file_data2)
         self.mem_read.set(processor.state.signals.mem_signals.mem_data)
         self.mem_rd.set(processor.state.pipe.ex_mem.register_file_rd)
 
+    def _refresh_wb_signals(self, processor):
         self.wb_memory_data.set(processor.state.pipe.mem_wb.memory_data)
         self.wb_alu_result.set(processor.state.pipe.mem_wb.alu_result)
         self.wb_rf_write_data.set(processor.state.signals.wb_signals.rf_write_data)
@@ -149,28 +178,28 @@ class PipelineGraphics:
     def _place_pipe_instruction_labels(self, pipe_pane, x, y, distance):
         self.if_instruction = StringVar()
         self.if_instruction.set("")
-        label = Label(pipe_pane, textvariable=self.if_instruction, relief=GROOVE, font=(g_font, g_font_size))
-        label.place(x=x, y=y)
+        self.if_instruction_label = Label(pipe_pane, textvariable=self.if_instruction, relief=GROOVE, font=(g_font, g_font_size))
+        self.if_instruction_label.place(x=x, y=y)
 
         self.id_instruction = StringVar()
         self.id_instruction.set("")
-        label = Label(pipe_pane, textvariable=self.id_instruction, relief=GROOVE, font=(g_font, g_font_size))
-        label.place(x=x+distance, y=y)
+        self.id_instruction_label = Label(pipe_pane, textvariable=self.id_instruction, relief=GROOVE, font=(g_font, g_font_size))
+        self.id_instruction_label.place(x=x+distance, y=y)
 
         self.ex_instruction = StringVar()
         self.ex_instruction.set("")
-        label = Label(pipe_pane, textvariable=self.ex_instruction, relief=GROOVE, font=(g_font, g_font_size))
-        label.place(x=x+2*distance+20, y=y)
+        self.ex_instruction_label = Label(pipe_pane, textvariable=self.ex_instruction, relief=GROOVE, font=(g_font, g_font_size))
+        self.ex_instruction_label.place(x=x+2*distance+20, y=y)
 
         self.mem_instruction = StringVar()
         self.mem_instruction.set("")
-        label = Label(pipe_pane, textvariable=self.mem_instruction, relief=GROOVE, font=(g_font, g_font_size))
-        label.place(x=x+3*distance+30, y=y)
+        self.mem_instruction_label = Label(pipe_pane, textvariable=self.mem_instruction, relief=GROOVE, font=(g_font, g_font_size))
+        self.mem_instruction_label.place(x=x+3*distance+30, y=y)
 
         self.wb_instruction = StringVar()
         self.wb_instruction.set("")
-        label = Label(pipe_pane, textvariable=self.wb_instruction, relief=GROOVE, font=(g_font, g_font_size))
-        label.place(x=x+4*distance, y=y)
+        self.wb_instruction_label = Label(pipe_pane, textvariable=self.wb_instruction, relief=GROOVE, font=(g_font, g_font_size))
+        self.wb_instruction_label.place(x=x+4*distance, y=y)
 
     def _setup_pipeline_if_stage_labels(self):
         self.if_pc_mux_1 = StringVar()

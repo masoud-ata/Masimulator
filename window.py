@@ -124,6 +124,7 @@ class Screen:
 
         self.forwarding_enabled = IntVar()
         self.hazard_detection_enabled = IntVar()
+        self.delayed_branches_enabled = IntVar()
         self._setup_check_buttons()
 
         self.register_file_entries = _setup_register_file_entries(self.main_window)
@@ -194,12 +195,12 @@ class Screen:
     def _setup_check_buttons(self):
         check_buttons_pane = ttk.Panedwindow(self.main_window, width=100, height=50)
         check_buttons_pane.place(x=0, y=80)
-
         c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=self.forwarding_enabled, command=self.toggle_forwarding_callback)
         c.grid(row=1, column=0, sticky=W)
-
         c = Checkbutton(check_buttons_pane, text="Enable hazard detection", variable=self.hazard_detection_enabled, command=self.toggle_hazard_detection_callback)
         c.grid(row=2, column=0, sticky=W)
+        c = Checkbutton(check_buttons_pane, text="Enable delayed branches", variable=self.delayed_branches_enabled, command=self.toggle_delayed_branches_callback)
+        c.grid(row=3, column=0, sticky=W)
 
     def _key_press_callback(self, event):
         key = event.keysym
@@ -345,7 +346,6 @@ class Screen:
     def reset_callback(self):
         self.risc_v.reset()
         self.risc_v.calculate_signals()
-
         self.refresh_register_file_box()
         self.refresh_data_memory_box()
         self.refresh_program_memory_box(0)
@@ -353,10 +353,11 @@ class Screen:
 
     def toggle_forwarding_callback(self):
         self.pipe_graphics.toggle_forwarding(self.forwarding_enabled.get())
-        #self.reset_callback()
         self.risc_v.forwarding_enabled = self.forwarding_enabled.get()
 
     def toggle_hazard_detection_callback(self):
         self.pipe_graphics.toggle_hazard_detection(self.hazard_detection_enabled.get())
-        self.reset_callback()
         self.risc_v.hazard_detection_enabled = self.hazard_detection_enabled.get()
+
+    def toggle_delayed_branches_callback(self):
+        self.risc_v.delayed_branches_enabled = self.delayed_branches_enabled.get()

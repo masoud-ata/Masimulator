@@ -6,7 +6,7 @@ For now it supports only a handful of instructions, such as:
 
 add, sub, and, or, slt, addi, lw, sw, beq, bne, blt, bge, bltu, bgeu
 
-But this is enough to show the functionality of a pipeline for a lab setting. The pipeline supports forwarding and hazard detection, which can be enabled and disabled to observe the difference.
+But this is enough to show the functionality of a pipeline for a lab setting. The pipeline supports forwarding, hazard detection, and delayed branches which can be enabled or disabled to observe the difference.
 
 # How to run
 If you have all the required packages (such as Tkinter) then just use the following in your command line, or run main.py in your IDE of choice:

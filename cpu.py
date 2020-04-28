@@ -66,6 +66,7 @@ class IfIdReg:
     def __init__(self):
         self.pc = 0
         self.instruction = 0
+        self.nop_inserted = False
 
 
 class IdExReg:
@@ -84,6 +85,7 @@ class IdExReg:
         self.alu_control = 0
         self.register_file_rd = 0
         self.instruction = 0
+        self.nop_inserted = False
 
 
 class ExMemReg:
@@ -96,6 +98,7 @@ class ExMemReg:
         self.register_file_data2 = 0
         self.register_file_rd = 0
         self.instruction = 0
+        self.nop_inserted = False
 
 
 class MemWbReg:
@@ -106,6 +109,7 @@ class MemWbReg:
         self.alu_result = 0
         self.register_file_rd = 0
         self.instruction = 0
+        self.nop_inserted = False
 
 
 class Pipeline:
@@ -142,6 +146,7 @@ class CPU:
         self.trace = []
         self.forwarding_enabled = 0
         self.hazard_detection_enabled = 0
+        self.delayed_branches_enabled = 0
 
     def read_program_memory(self):
         self.memory = []
@@ -339,7 +344,13 @@ class CPU:
     def _register_if_id(self):
         if self.state.hazard_detected == 0:
             self.state.pipe.if_id.pc = self.state.signals.if_signals.pc
-            self.state.pipe.if_id.instruction = self.state.signals.if_signals.instruction
+            flush_if_inst = self.delayed_branches_enabled == 0 and self.state.signals.id_signals.control_branch_taken == 1
+            if flush_if_inst:
+                self.state.pipe.if_id.instruction = Instruction(0).nop()
+                self.state.pipe.if_id.nop_inserted = True
+            else:
+                self.state.pipe.if_id.instruction = self.state.signals.if_signals.instruction
+                self.state.pipe.if_id.nop_inserted = False
             self.state.pc = self.state.signals.if_signals.next_pc
 
     def _register_id_ex(self):
@@ -359,8 +370,10 @@ class CPU:
 
         if self.state.hazard_detected == 1:
             self.state.pipe.id_ex.instruction = Instruction(0).nop()
+            self.state.pipe.id_ex.nop_inserted = True
         else:
             self.state.pipe.id_ex.instruction = self.state.pipe.if_id.instruction
+            self.state.pipe.id_ex.nop_inserted = self.state.pipe.if_id.nop_inserted
 
     def _register_ex_mem(self):
         self.state.pipe.ex_mem.control_mem_read = self.state.pipe.id_ex.control_mem_read
@@ -371,6 +384,7 @@ class CPU:
         self.state.pipe.ex_mem.register_file_data2 =self.state.signals.ex_signals.right_forward_out
         self.state.pipe.ex_mem.register_file_rd = self.state.pipe.id_ex.register_file_rd
         self.state.pipe.ex_mem.instruction = self.state.pipe.id_ex.instruction
+        self.state.pipe.ex_mem.nop_inserted = self.state.pipe.id_ex.nop_inserted
 
     def _register_mem_wb(self):
         self.state.pipe.mem_wb.control_reg_write = self.state.pipe.ex_mem.control_reg_write
@@ -379,3 +393,4 @@ class CPU:
         self.state.pipe.mem_wb.alu_result = self.state.pipe.ex_mem.alu_result
         self.state.pipe.mem_wb.register_file_rd = self.state.pipe.ex_mem.register_file_rd
         self.state.pipe.mem_wb.instruction = self.state.pipe.ex_mem.instruction
+        self.state.pipe.mem_wb.nop_inserted = self.state.pipe.ex_mem.nop_inserted
