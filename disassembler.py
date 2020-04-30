@@ -46,6 +46,10 @@ class Instruction:
         imm = self._negative_fix(imm, 12)
         return imm
 
+    def imm_u(self):
+        imm = (self.word) & 0xfffff000
+        return imm
+
     def nop(self):
         return 0x13
 
@@ -56,6 +60,7 @@ class Instruction:
 def disassemble(inst):
     instruction = Instruction(inst)
 
+    LUI = 0b0110111
     R_FORMAT = 0b0110011
     ADDI = 0b0010011
     LOAD = 0b0000011
@@ -63,7 +68,8 @@ def disassemble(inst):
     BRANCH = 0b1100011
 
     dic = {
-        LOAD: "lw",
+        LUI: "lui",
+        LOAD: "",
         STORE: "sw",
         BRANCH: "",
         ADDI: "addi",
@@ -77,7 +83,15 @@ def disassemble(inst):
 
     if instruction.is_nop():
         assembly_code = "nop"
+    elif instruction.opcode() == LUI:
+        assembly_code = assembly_code + ", " + str(instruction.imm_u())
     elif instruction.opcode() == LOAD:
+        if instruction.funct3() == 0b000:
+            assembly_code = "lb"
+        elif instruction.funct3() == 0b001:
+            assembly_code = "lh"
+        elif instruction.funct3() == 0b010:
+            assembly_code = "lw"
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", " + str(instruction.imm_i()) + "($" + str(instruction.rs1()) + ")"
     elif instruction.opcode() == STORE:
         assembly_code = assembly_code + " $" + str(instruction.rs2()) + ", " + str(instruction.imm_s()) + "($" + str(instruction.rs1()) + ")"

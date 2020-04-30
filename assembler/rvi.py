@@ -99,20 +99,23 @@ def replace_nice_looking_loads(assembly_file):
     lines = in_file.readlines()
     lines_2_write = []
 
+    load_types = ['lb', 'lh', 'lw']
     for l in lines:
-        lw_pos = l.find('lw')
-        if lw_pos > 0:
-            rd = 0
-            rs1 = 2
-            imm = 1
-            numbers = re.findall("[-\d]+", l)
-            l = " " * lw_pos + "lw " + "$" + str(numbers[rd]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
+        for i, load_type in enumerate(load_types):
+            load_pos = l.find(load_type)
+            if load_pos > 0:
+                rd = 0
+                rs1 = 2
+                imm = 1
+                numbers = re.findall("[-\d]+", l)
+                l = " " * load_pos + load_types[i] + " $" + str(numbers[rd]) + ", " + "$" + str(numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
+                continue
         lines_2_write.append(l)
     in_file.close()
 
     out_file = open(assembly_file, "w")
-    for line in lines_2_write:
-        out_file.write(line)
+    for l in lines_2_write:
+        out_file.write(l)
     out_file.close()
 
     return assembly_file

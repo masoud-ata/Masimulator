@@ -4,7 +4,7 @@
 LOOP:
     beq $3, $1, DONE            # if counter == loop limit then done!
     addi $1, $1, 1              # counter++
-    sw $1, $1, 0
+    sw $1, 0($1)
     beq $0, $0, LOOP            # jump
 DONE:
     nop

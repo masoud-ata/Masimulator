@@ -2,6 +2,19 @@ from disassembler import Instruction, BranchTypes
 from utils import read_program_mem, to_unsigned
 import copy
 
+ALU_AND = 0b000
+ALU_OR = 0b001
+ALU_ADD = 0b010
+ALU_SUB = 0b110
+ALU_SLT = 0b011
+ALU_RIGHT = 0b10000
+
+
+class MemoryReadMode:
+    WORD = 0
+    HALF_SIGNED = 1
+    BYTE_SIGNED = 2
+
 
 class IfSignals:
     def __init__(self):
@@ -9,6 +22,7 @@ class IfSignals:
         self.pc_plus_4 = 0
         self.next_pc = 0
         self.instruction = 0
+
 
 class IdSignals:
     def __init__(self):
@@ -25,6 +39,7 @@ class IdSignals:
         self.control_alu_op = 0
         self.control_alu_src = 0
         self.control_mem_read = 0
+        self.control_mem_read_mode = 0
         self.control_mem_write = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
@@ -74,6 +89,7 @@ class IdExReg:
         self.control_alu_op = 0
         self.control_alu_src = 0
         self.control_mem_read = 0
+        self.control_mem_read_mode = 0
         self.control_mem_write = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
@@ -82,7 +98,6 @@ class IdExReg:
         self.register_file_rs1 = 0
         self.register_file_rs2 = 0
         self.sign_extended_immediate = 0
-        self.alu_control = 0
         self.register_file_rd = 0
         self.instruction = 0
         self.nop_inserted = False
@@ -91,6 +106,7 @@ class IdExReg:
 class ExMemReg:
     def __init__(self):
         self.control_mem_read = 0
+        self.control_mem_read_mode = 0
         self.control_mem_write = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
@@ -187,152 +203,34 @@ class CPU:
             self.state.signals.if_signals.next_pc = self.state.signals.id_signals.branch_address
 
     def _calc_id_signals(self):
-        def imm_generation(inst):
-            op_6_5 = inst.opcode() >> 5
-
-            if op_6_5 == 0b00:
-                self.state.signals.id_signals.sign_extended_immediate = inst.imm_i()
-            elif op_6_5 == 0b01:
-                self.state.signals.id_signals.sign_extended_immediate = inst.imm_s()
-            else:
-                self.state.signals.id_signals.sign_extended_immediate = inst.imm_sb()
-
-        def control(opcode):
-            R_FORMAT = 0b0110011
-            ADDI = 0b0010011
-            LOAD = 0b0000011
-            STORE = 0b0100011
-            BRANCH = 0b1100011
-
-            self.state.signals.id_signals.control_alu_op = 0
-            self.state.signals.id_signals.control_alu_src = 0
-            self.state.signals.id_signals.control_mem_read = 0
-            self.state.signals.id_signals.control_mem_write = 0
-            self.state.signals.id_signals.control_reg_write = 0
-            self.state.signals.id_signals.control_mem_to_reg = 0
-            self.state.signals.id_signals.control_is_branch = 0
-
-            self.state.hazard_detected = 0
-
-            if self.hazard_detection_enabled == 1 and self.state.pipe.id_ex.control_mem_read == 1 and \
-                (self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs1() or
-                 self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs2()):
-                self.state.hazard_detected = 1
-            elif opcode == R_FORMAT:
-                self.state.signals.id_signals.control_alu_op = 0b10
-                self.state.signals.id_signals.control_reg_write = 1
-            elif opcode == ADDI:
-                self.state.signals.id_signals.control_alu_op = 0b00
-                self.state.signals.id_signals.control_reg_write = 1
-                self.state.signals.id_signals.control_alu_src = 1
-            elif opcode == LOAD:
-                self.state.signals.id_signals.control_alu_src = 1
-                self.state.signals.id_signals.control_mem_read = 1
-                self.state.signals.id_signals.control_reg_write = 1
-                self.state.signals.id_signals.control_mem_to_reg = 1
-            elif opcode == STORE:
-                self.state.signals.id_signals.control_alu_src = 1
-                self.state.signals.id_signals.control_mem_write = 1
-            elif opcode == BRANCH:
-                self.state.signals.id_signals.control_is_branch = 1
-
-        def handle_branch():
-            self.state.signals.id_signals.branch_address = self.state.pipe.if_id.pc + (self.state.signals.id_signals.sign_extended_immediate << 1)
-            self.state.signals.id_signals.zero_flag = (self.state.signals.id_signals.rf_data1 == self.state.signals.id_signals.rf_data2)
-            self.state.signals.id_signals.less_than_flag = (self.state.signals.id_signals.rf_data1 < self.state.signals.id_signals.rf_data2)
-            self.state.signals.id_signals.greater_than_equal_flag = (self.state.signals.id_signals.rf_data1 >= self.state.signals.id_signals.rf_data2)
-            self.state.signals.id_signals.less_than_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) < to_unsigned(self.state.signals.id_signals.rf_data2, 32))
-            self.state.signals.id_signals.greater_than_equal_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) >= to_unsigned(self.state.signals.id_signals.rf_data2, 32))
-            branch_type = Instruction(self.state.pipe.if_id.instruction).funct3()
-            self.state.signals.id_signals.control_branch_taken = 0
-            if self.state.signals.id_signals.control_is_branch:
-                if branch_type == BranchTypes.BEQ and self.state.signals.id_signals.zero_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-                elif branch_type == BranchTypes.BNE and not self.state.signals.id_signals.zero_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-                elif branch_type == BranchTypes.BLT and self.state.signals.id_signals.less_than_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-                elif branch_type == BranchTypes.BGE and self.state.signals.id_signals.greater_than_equal_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-                elif branch_type == BranchTypes.BLTU and self.state.signals.id_signals.less_than_unsigned_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-                elif branch_type == BranchTypes.BGEU and self.state.signals.id_signals.greater_than_equal_unsigned_flag:
-                    self.state.signals.id_signals.control_branch_taken = 1
-
         self.state.signals.id_signals.instruction = Instruction(self.state.pipe.if_id.instruction)
         self.state.signals.id_signals.rs1 = self.state.signals.id_signals.instruction.rs1()
         self.state.signals.id_signals.rs2 = self.state.signals.id_signals.instruction.rs2()
         self.state.signals.id_signals.rf_data1 = self.state.register_file[self.state.signals.id_signals.rs1]
         self.state.signals.id_signals.rf_data2 = self.state.register_file[self.state.signals.id_signals.rs2]
-        imm_generation(self.state.signals.id_signals.instruction)
-        control(self.state.signals.id_signals.instruction.opcode())
-        handle_branch()
+        self._id_imm_generation(self.state.signals.id_signals.instruction)
+        self._id_control(self.state.signals.id_signals.instruction)
+        self._id_handle_branch()
 
     def _calc_ex_signals(self):
-        ALU_AND = 0b000
-        ALU_OR = 0b001
-        ALU_ADD = 0b010
-        ALU_SUB = 0b110
-        ALU_SLT = 0b011
-        def alu_control():
-            ex_alu_control = ALU_AND
-            if self.state.pipe.id_ex.control_alu_op == 0b00:
-                ex_alu_control = ALU_ADD
-            elif self.state.pipe.id_ex.control_alu_op == 0b01:
-                ex_alu_control = ALU_SUB
-            elif self.state.pipe.id_ex.alu_control == 0b0000:
-                ex_alu_control = ALU_ADD
-            elif self.state.pipe.id_ex.alu_control == 0b1000:
-                ex_alu_control = ALU_SUB
-            elif self.state.pipe.id_ex.alu_control == 0b0111:
-                ex_alu_control = ALU_AND
-            elif self.state.pipe.id_ex.alu_control == 0b0110:
-                ex_alu_control = ALU_OR
-            elif self.state.pipe.id_ex.alu_control == 0b0010:
-                ex_alu_control = ALU_SLT
-            return ex_alu_control
-
-        def alu(control, left, right):
-            if control == ALU_AND:
-                ex_alu_result = left & right
-            elif control == ALU_OR:
-                ex_alu_result = left | right
-            elif control == ALU_ADD:
-                ex_alu_result = left + right
-            elif control == ALU_SUB:
-                ex_alu_result = left - right
-            elif control == ALU_SLT:
-                ex_alu_result = 1 if left < right else 0
-            else:
-                ex_alu_result = left & right
-            return ex_alu_result
-
-        def forward_stuff():
-            self.state.signals.ex_signals.alu_left_op = self.state.pipe.id_ex.register_file_data1
-            if self.forwarding_enabled == 1:
-                if self.state.pipe.ex_mem.control_reg_write == 1 and self.state.pipe.ex_mem.register_file_rd != 0 and self.state.pipe.ex_mem.register_file_rd == self.state.pipe.id_ex.register_file_rs1:
-                    self.state.signals.ex_signals.alu_left_op = self.state.pipe.ex_mem.alu_result
-                elif self.state.pipe.mem_wb.control_reg_write == 1 and self.state.pipe.mem_wb.register_file_rd != 0 and self.state.pipe.mem_wb.register_file_rd == self.state.pipe.id_ex.register_file_rs1:
-                    self.state.signals.ex_signals.alu_left_op = self.state.signals.wb_signals.rf_write_data
-
-            self.state.signals.ex_signals.right_forward_out = self.state.pipe.id_ex.register_file_data2
-            if self.forwarding_enabled == 1:
-                if self.state.pipe.ex_mem.control_reg_write == 1 and self.state.pipe.ex_mem.register_file_rd != 0 and self.state.pipe.ex_mem.register_file_rd == self.state.pipe.id_ex.register_file_rs2:
-                    self.state.signals.ex_signals.right_forward_out = self.state.pipe.ex_mem.alu_result
-                elif self.state.pipe.mem_wb.control_reg_write == 1 and self.state.pipe.mem_wb.register_file_rd != 0 and self.state.pipe.mem_wb.register_file_rd == self.state.pipe.id_ex.register_file_rs2:
-                    self.state.signals.ex_signals.right_forward_out = self.state.signals.wb_signals.rf_write_data
-
-            if self.state.pipe.id_ex.control_alu_src == 0:
-                self.state.signals.ex_signals.alu_right_op = self.state.signals.ex_signals.right_forward_out
-            else:
-                self.state.signals.ex_signals.alu_right_op = self.state.pipe.id_ex.sign_extended_immediate
-
-        forward_stuff()
-        self.state.signals.ex_signals.alu_result = alu(alu_control(), self.state.signals.ex_signals.alu_left_op, self.state.signals.ex_signals.alu_right_op)
+        self._ex_forward_stuff()
+        self.state.signals.ex_signals.alu_result = self._ex_alu(self.state.pipe.id_ex.control_alu_op, self.state.signals.ex_signals.alu_left_op, self.state.signals.ex_signals.alu_right_op)
 
     def _calc_mem_signals(self):
         self.state.signals.mem_signals.address = self.state.pipe.ex_mem.alu_result
-        self.state.signals.mem_signals.mem_data = self.state.data_memory[self.state.signals.mem_signals.address] if self.state.pipe.ex_mem.control_mem_read == 1 else 0
+        mem_data = self.state.data_memory[self.state.signals.mem_signals.address] if self.state.pipe.ex_mem.control_mem_read == 1 else 0
+
+        if self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.WORD:
+            self.state.signals.mem_signals.mem_data = mem_data
+        elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.BYTE_SIGNED:
+            sign = (mem_data >> 7 & 0x1)
+            byte_sign_extended = (mem_data & 0x000000ff) | (sign * 0xffffff00)
+            self.state.signals.mem_signals.mem_data = byte_sign_extended
+        elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.HALF_SIGNED:
+            sign = (mem_data >> 15 & 0x1)
+            halfword_sign_extended = (mem_data & 0x0000ffff) | (sign * 0xffff0000)
+            self.state.signals.mem_signals.mem_data = halfword_sign_extended
+
         if self.state.pipe.ex_mem.control_mem_write == 1:
             self.state.data_memory[self.state.signals.mem_signals.address] = self.state.pipe.ex_mem.register_file_data2
 
@@ -340,6 +238,139 @@ class CPU:
         self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.alu_result if self.state.pipe.mem_wb.control_mem_to_reg == 0 else self.state.pipe.mem_wb.memory_data
         if self.state.pipe.mem_wb.control_reg_write:
             self.state.register_file[self.state.pipe.mem_wb.register_file_rd] = self.state.signals.wb_signals.rf_write_data
+
+    def _id_imm_generation(self, inst):
+        op_6_5 = inst.opcode() >> 5
+        if inst.opcode() == 0b0110111:
+            self.state.signals.id_signals.sign_extended_immediate = inst.imm_u()
+        elif op_6_5 == 0b00:
+            self.state.signals.id_signals.sign_extended_immediate = inst.imm_i()
+        elif op_6_5 == 0b01:
+            self.state.signals.id_signals.sign_extended_immediate = inst.imm_s()
+        else:
+            self.state.signals.id_signals.sign_extended_immediate = inst.imm_sb()
+
+    def _id_control(self, instruction):
+        opcode = instruction.opcode()
+        funct7 = instruction.funct7()
+        funct3 = instruction.funct3()
+
+        self.state.signals.id_signals.control_alu_op = ALU_ADD
+        self.state.signals.id_signals.control_alu_src = 0
+        self.state.signals.id_signals.control_mem_read = 0
+        self.state.signals.id_signals.control_mem_write = 0
+        self.state.signals.id_signals.control_reg_write = 0
+        self.state.signals.id_signals.control_mem_read_mode = MemoryReadMode.WORD
+        self.state.signals.id_signals.control_mem_to_reg = 0
+        self.state.signals.id_signals.control_is_branch = 0
+        self.state.hazard_detected = 0
+
+        LUI = 0b0110111
+        R_FORMAT = 0b0110011
+        ADDI = 0b0010011
+        LOAD = 0b0000011
+        STORE = 0b0100011
+        BRANCH = 0b1100011
+
+        if self.hazard_detection_enabled == 1 and self.state.pipe.id_ex.control_mem_read == 1 and \
+            (self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs1() or
+             self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs2()):
+            self.state.hazard_detected = 1
+        elif opcode == R_FORMAT:
+            if funct3 == 0b000 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_ADD
+            elif funct3 == 0b000 and funct7 == 0b0100000:
+                self.state.signals.id_signals.control_alu_op = ALU_SUB
+            elif funct3 == 0b111 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_AND
+            elif funct3 == 0b110 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_OR
+            elif funct3 == 0b010 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_SLT
+            self.state.signals.id_signals.control_reg_write = 1
+        elif opcode == ADDI:
+            self.state.signals.id_signals.control_reg_write = 1
+            self.state.signals.id_signals.control_alu_src = 1
+        elif opcode == LOAD:
+            self.state.signals.id_signals.control_alu_src = 1
+            self.state.signals.id_signals.control_mem_read = 1
+            self.state.signals.id_signals.control_reg_write = 1
+            self.state.signals.id_signals.control_mem_to_reg = 1
+            if funct3 == 0b000:
+                self.state.signals.id_signals.control_mem_read_mode = MemoryReadMode.BYTE_SIGNED
+            elif funct3 == 0b001:
+                self.state.signals.id_signals.control_mem_read_mode = MemoryReadMode.HALF_SIGNED
+            elif funct3 == 0b010:
+                self.state.signals.id_signals.control_mem_read_mode = MemoryReadMode.WORD
+        elif opcode == STORE:
+            self.state.signals.id_signals.control_alu_src = 1
+            self.state.signals.id_signals.control_mem_write = 1
+        elif opcode == BRANCH:
+            self.state.signals.id_signals.control_is_branch = 1
+        elif opcode == LUI:
+            self.state.signals.id_signals.control_alu_op = ALU_RIGHT
+            self.state.signals.id_signals.control_alu_src = 1
+            self.state.signals.id_signals.control_reg_write = 1
+
+    def _id_handle_branch(self):
+        self.state.signals.id_signals.branch_address = self.state.pipe.if_id.pc + (self.state.signals.id_signals.sign_extended_immediate << 1)
+        self.state.signals.id_signals.zero_flag = (self.state.signals.id_signals.rf_data1 == self.state.signals.id_signals.rf_data2)
+        self.state.signals.id_signals.less_than_flag = (self.state.signals.id_signals.rf_data1 < self.state.signals.id_signals.rf_data2)
+        self.state.signals.id_signals.greater_than_equal_flag = (self.state.signals.id_signals.rf_data1 >= self.state.signals.id_signals.rf_data2)
+        self.state.signals.id_signals.less_than_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) < to_unsigned(self.state.signals.id_signals.rf_data2, 32))
+        self.state.signals.id_signals.greater_than_equal_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) >= to_unsigned(self.state.signals.id_signals.rf_data2, 32))
+        branch_type = Instruction(self.state.pipe.if_id.instruction).funct3()
+        self.state.signals.id_signals.control_branch_taken = 0
+        if self.state.signals.id_signals.control_is_branch:
+            if branch_type == BranchTypes.BEQ and self.state.signals.id_signals.zero_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+            elif branch_type == BranchTypes.BNE and not self.state.signals.id_signals.zero_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+            elif branch_type == BranchTypes.BLT and self.state.signals.id_signals.less_than_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+            elif branch_type == BranchTypes.BGE and self.state.signals.id_signals.greater_than_equal_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+            elif branch_type == BranchTypes.BLTU and self.state.signals.id_signals.less_than_unsigned_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+            elif branch_type == BranchTypes.BGEU and self.state.signals.id_signals.greater_than_equal_unsigned_flag:
+                self.state.signals.id_signals.control_branch_taken = 1
+
+    def _ex_alu(self, control, left, right):
+        ex_alu_result = left & right
+        if control == ALU_AND:
+            ex_alu_result = left & right
+        elif control == ALU_OR:
+            ex_alu_result = left | right
+        elif control == ALU_ADD:
+            ex_alu_result = left + right
+        elif control == ALU_SUB:
+            ex_alu_result = left - right
+        elif control == ALU_SLT:
+            ex_alu_result = 1 if left < right else 0
+        elif control == ALU_RIGHT:
+            ex_alu_result = right
+
+        return ex_alu_result
+
+    def _ex_forward_stuff(self):
+        self.state.signals.ex_signals.alu_left_op = self.state.pipe.id_ex.register_file_data1
+        if self.forwarding_enabled == 1:
+            if self.state.pipe.ex_mem.control_reg_write == 1 and self.state.pipe.ex_mem.register_file_rd != 0 and self.state.pipe.ex_mem.register_file_rd == self.state.pipe.id_ex.register_file_rs1:
+                self.state.signals.ex_signals.alu_left_op = self.state.pipe.ex_mem.alu_result
+            elif self.state.pipe.mem_wb.control_reg_write == 1 and self.state.pipe.mem_wb.register_file_rd != 0 and self.state.pipe.mem_wb.register_file_rd == self.state.pipe.id_ex.register_file_rs1:
+                self.state.signals.ex_signals.alu_left_op = self.state.signals.wb_signals.rf_write_data
+
+        self.state.signals.ex_signals.right_forward_out = self.state.pipe.id_ex.register_file_data2
+        if self.forwarding_enabled == 1:
+            if self.state.pipe.ex_mem.control_reg_write == 1 and self.state.pipe.ex_mem.register_file_rd != 0 and self.state.pipe.ex_mem.register_file_rd == self.state.pipe.id_ex.register_file_rs2:
+                self.state.signals.ex_signals.right_forward_out = self.state.pipe.ex_mem.alu_result
+            elif self.state.pipe.mem_wb.control_reg_write == 1 and self.state.pipe.mem_wb.register_file_rd != 0 and self.state.pipe.mem_wb.register_file_rd == self.state.pipe.id_ex.register_file_rs2:
+                self.state.signals.ex_signals.right_forward_out = self.state.signals.wb_signals.rf_write_data
+
+        if self.state.pipe.id_ex.control_alu_src == 0:
+            self.state.signals.ex_signals.alu_right_op = self.state.signals.ex_signals.right_forward_out
+        else:
+            self.state.signals.ex_signals.alu_right_op = self.state.pipe.id_ex.sign_extended_immediate
 
     def _register_if_id(self):
         if self.state.hazard_detected == 0:
@@ -364,10 +395,9 @@ class CPU:
         self.state.pipe.id_ex.control_mem_read = self.state.signals.id_signals.control_mem_read
         self.state.pipe.id_ex.control_mem_write = self.state.signals.id_signals.control_mem_write
         self.state.pipe.id_ex.control_reg_write = self.state.signals.id_signals.control_reg_write
+        self.state.pipe.id_ex.control_mem_read_mode = self.state.signals.id_signals.control_mem_read_mode
         self.state.pipe.id_ex.control_mem_to_reg = self.state.signals.id_signals.control_mem_to_reg
         self.state.pipe.id_ex.sign_extended_immediate = self.state.signals.id_signals.sign_extended_immediate
-        self.state.pipe.id_ex.alu_control = (self.state.signals.id_signals.instruction.funct7() & 0b100000) >> 2 | self.state.signals.id_signals.instruction.funct3()
-
         if self.state.hazard_detected == 1:
             self.state.pipe.id_ex.instruction = Instruction(0).nop()
             self.state.pipe.id_ex.nop_inserted = True
@@ -377,6 +407,7 @@ class CPU:
 
     def _register_ex_mem(self):
         self.state.pipe.ex_mem.control_mem_read = self.state.pipe.id_ex.control_mem_read
+        self.state.pipe.ex_mem.control_mem_read_mode = self.state.pipe.id_ex.control_mem_read_mode
         self.state.pipe.ex_mem.control_mem_write = self.state.pipe.id_ex.control_mem_write
         self.state.pipe.ex_mem.control_reg_write = self.state.pipe.id_ex.control_reg_write
         self.state.pipe.ex_mem.control_mem_to_reg = self.state.pipe.id_ex.control_mem_to_reg
