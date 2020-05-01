@@ -1,5 +1,5 @@
 from disassembler import Instruction, BranchTypes
-from utils import read_program_mem, to_unsigned
+from utils import *
 import copy
 
 ALU_AND = 0b000
@@ -225,11 +225,11 @@ class CPU:
         elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.BYTE_SIGNED:
             sign = (mem_data >> 7 & 0x1)
             byte_sign_extended = (mem_data & 0x000000ff) | (sign * 0xffffff00)
-            self.state.signals.mem_signals.mem_data = byte_sign_extended
+            self.state.signals.mem_signals.mem_data = to_int32(byte_sign_extended)
         elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.HALF_SIGNED:
             sign = (mem_data >> 15 & 0x1)
             halfword_sign_extended = (mem_data & 0x0000ffff) | (sign * 0xffff0000)
-            self.state.signals.mem_signals.mem_data = halfword_sign_extended
+            self.state.signals.mem_signals.mem_data = to_int32(halfword_sign_extended)
 
         if self.state.pipe.ex_mem.control_mem_write == 1:
             self.state.data_memory[self.state.signals.mem_signals.address] = self.state.pipe.ex_mem.register_file_data2
@@ -336,19 +336,19 @@ class CPU:
                 self.state.signals.id_signals.control_branch_taken = 1
 
     def _ex_alu(self, control, left, right):
-        ex_alu_result = left & right
+        ex_alu_result = to_int32(left & right)
         if control == ALU_AND:
-            ex_alu_result = left & right
+            ex_alu_result = to_int32(left & right)
         elif control == ALU_OR:
-            ex_alu_result = left | right
+            ex_alu_result = to_int32(left | right)
         elif control == ALU_ADD:
-            ex_alu_result = left + right
+            ex_alu_result = to_int32(left + right)
         elif control == ALU_SUB:
-            ex_alu_result = left - right
+            ex_alu_result = to_int32(left - right)
         elif control == ALU_SLT:
             ex_alu_result = 1 if left < right else 0
         elif control == ALU_RIGHT:
-            ex_alu_result = right
+            ex_alu_result = to_int32(right)
 
         return ex_alu_result
 
