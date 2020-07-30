@@ -123,6 +123,8 @@ def disassemble(inst):
             assembly_code = "or"
         elif alu_control == 0b0010:
             assembly_code = "slt"
+        elif alu_control == 0b0011:
+            assembly_code = "sltu"
         assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", $" + str(instruction.rs2())
 
     return assembly_code

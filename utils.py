@@ -1,14 +1,16 @@
+from disassembler import Instruction
+
+
 def read_program_mem(filename, mem):
     mem_list = []
     f = open(filename, "r")
-
     for line in f:
         mem_list.append(line)
-
     f.close()
-
     for element in mem_list:
         mem.append(int(element, 2))
+    for i in range(4):
+        mem.append(Instruction(0).nop())
 
 
 def to_unsigned(val, bits):

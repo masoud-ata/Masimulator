@@ -4,7 +4,7 @@ https://www.amazon.com/gp/product/0128122757/ref=dbs_a_def_rwt_bibl_vppi_i2
 
 For now it supports only a handful of instructions, such as:
 
-add, sub, and, or, slt, addi, lui, lb, lh, lw, sw, beq, bne, blt, bge, bltu, bgeu
+add, sub, and, or, slt, sltu, addi, lui, lb, lh, lw, sw, beq, bne, blt, bge, bltu, bgeu
 
 But this is enough to show the functionality of a pipeline for a lab setting. The pipeline supports forwarding, hazard detection, and delayed branches which can be enabled or disabled to observe the difference.
 

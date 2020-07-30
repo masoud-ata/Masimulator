@@ -1,13 +1,15 @@
 from disassembler import Instruction, BranchTypes
 from utils import *
+from memory import *
 import copy
 
-ALU_AND = 0b000
-ALU_OR = 0b001
-ALU_ADD = 0b010
-ALU_SUB = 0b110
-ALU_SLT = 0b011
-ALU_RIGHT = 0b10000
+ALU_AND = 0
+ALU_OR = 1
+ALU_ADD = 2
+ALU_SUB = 3
+ALU_SLT = 4
+ALU_SLTU = 5
+ALU_RIGHT = 6
 
 
 class MemoryReadMode:
@@ -61,6 +63,7 @@ class MemSignals:
     def __init__(self):
         self.address = 0
         self.mem_data = 0
+        self.cache_data_ready = False
 
 
 class WbSignals:
@@ -138,20 +141,16 @@ class Pipeline:
 
 class CpuState:
     def __init__(self):
-        self.pipe = Pipeline()
-        self.signals = Signals()
-        self.register_file = [0] * 32
-        self.pc = 0
-        self.data_memory = [0] * 1024
-        self.hazard_detected = 0
+        self.reset()
 
     def reset(self):
         self.pipe = Pipeline()
         self.signals = Signals()
         self.register_file = [0] * 32
         self.pc = 0
-        self.data_memory = [0] * 1024
+        self.data_memory_system = Memory()
         self.hazard_detected = 0
+        self.cycles_executed = 1
 
 
 class CPU:
@@ -176,22 +175,33 @@ class CPU:
         if len(self.trace) != 0:
             del self.state
             self.state = copy.deepcopy(self.trace.pop())
+            self.state.cycles_executed = self.state.cycles_executed - 1
+
+    def is_finished(self):
+        return int(self.state.pc / 4) == len(self.memory) - 1
 
     def tick(self):
-        if int(self.state.pc / 4) == len(self.memory) - 1:
+        if self.is_finished():
             return
+
+        self.state.cycles_executed = self.state.cycles_executed + 1
         self.trace.append(copy.deepcopy(self.state))
-        self._register_mem_wb()
-        self._register_ex_mem()
-        self._register_id_ex()
-        self._register_if_id()
+
+        if not self.state.data_memory_system.is_processing():
+            self._register_mem_wb()
+            self._register_ex_mem()
+            self._register_id_ex()
+            self._register_if_id()
+            self.calculate_signals()
+
+        self._calc_mem_signals_wait_cycles()
 
     def calculate_signals(self):
-        self._calc_wb_signals()
-        self._calc_mem_signals()
-        self._calc_ex_signals()
-        self._calc_id_signals()
-        self._calc_if_signals()
+            self._calc_wb_signals()
+            self._calc_mem_signals_request_cycle()
+            self._calc_ex_signals()
+            self._calc_id_signals()
+            self._calc_if_signals()
 
     def _calc_if_signals(self):
         self.state.signals.if_signals.instruction = self.memory[self.state.pc >> 2]
@@ -216,23 +226,30 @@ class CPU:
         self._ex_forward_stuff()
         self.state.signals.ex_signals.alu_result = self._ex_alu(self.state.pipe.id_ex.control_alu_op, self.state.signals.ex_signals.alu_left_op, self.state.signals.ex_signals.alu_right_op)
 
-    def _calc_mem_signals(self):
+    def _calc_mem_signals_request_cycle(self):
         self.state.signals.mem_signals.address = self.state.pipe.ex_mem.alu_result
-        mem_data = self.state.data_memory[self.state.signals.mem_signals.address] if self.state.pipe.ex_mem.control_mem_read == 1 else 0
+        self.state.signals.mem_signals.mem_data = 0
+        word_address = int(self.state.signals.mem_signals.address / 4)
+        data_word = self.state.pipe.ex_mem.register_file_data2
+        if self.state.pipe.ex_mem.control_mem_read == 1:
+            self.state.data_memory_system.read_request(word_address)
+        elif self.state.pipe.ex_mem.control_mem_write == 1:
+            self.state.data_memory_system.write_request(word_address, data_word)
 
-        if self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.WORD:
-            self.state.signals.mem_signals.mem_data = mem_data
-        elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.BYTE_SIGNED:
-            sign = (mem_data >> 7 & 0x1)
-            byte_sign_extended = (mem_data & 0x000000ff) | (sign * 0xffffff00)
-            self.state.signals.mem_signals.mem_data = to_int32(byte_sign_extended)
-        elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.HALF_SIGNED:
-            sign = (mem_data >> 15 & 0x1)
-            halfword_sign_extended = (mem_data & 0x0000ffff) | (sign * 0xffff0000)
-            self.state.signals.mem_signals.mem_data = to_int32(halfword_sign_extended)
-
-        if self.state.pipe.ex_mem.control_mem_write == 1:
-            self.state.data_memory[self.state.signals.mem_signals.address] = self.state.pipe.ex_mem.register_file_data2
+    def _calc_mem_signals_wait_cycles(self):
+        self.state.data_memory_system.tick()
+        if self.state.data_memory_system.is_data_ready():
+            mem_data = self.state.data_memory_system.read_data()
+            if self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.WORD:
+                self.state.signals.mem_signals.mem_data = mem_data
+            elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.BYTE_SIGNED:
+                sign = (mem_data >> 7 & 0x1)
+                byte_sign_extended = (mem_data & 0x000000ff) | (sign * 0xffffff00)
+                self.state.signals.mem_signals.mem_data = to_int32(byte_sign_extended)
+            elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.HALF_SIGNED:
+                sign = (mem_data >> 15 & 0x1)
+                halfword_sign_extended = (mem_data & 0x0000ffff) | (sign * 0xffff0000)
+                self.state.signals.mem_signals.mem_data = to_int32(halfword_sign_extended)
 
     def _calc_wb_signals(self):
         self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.alu_result if self.state.pipe.mem_wb.control_mem_to_reg == 0 else self.state.pipe.mem_wb.memory_data
@@ -287,6 +304,8 @@ class CPU:
                 self.state.signals.id_signals.control_alu_op = ALU_OR
             elif funct3 == 0b010 and funct7 == 0b0000000:
                 self.state.signals.id_signals.control_alu_op = ALU_SLT
+            elif funct3 == 0b011 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_SLTU
             self.state.signals.id_signals.control_reg_write = 1
         elif opcode == ADDI:
             self.state.signals.id_signals.control_reg_write = 1
@@ -347,6 +366,8 @@ class CPU:
             ex_alu_result = to_int32(left - right)
         elif control == ALU_SLT:
             ex_alu_result = 1 if left < right else 0
+        elif control == ALU_SLTU:
+            ex_alu_result = 1 if to_uint32(left) < to_uint32(right) else 0
         elif control == ALU_RIGHT:
             ex_alu_result = to_int32(right)
 

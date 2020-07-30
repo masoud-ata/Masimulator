@@ -15,8 +15,3 @@ LOOP:
 DONE:
     sw $4, 6($0)
     sw $5, 7($0)
-    nop
-    nop
-    nop
-    nop
-    nop
