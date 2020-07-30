@@ -33,8 +33,11 @@ class Cache:
         self.size = {"sets": sets, "blocks_per_set": blocks_per_set, "words_per_block": words_per_block}
         self.book_keeping_was_modified = False
         self.book_keeping_modified_words = []
+        self.book_keeping_modified_just_one = False
         self.book_keeping_modified_block = False
         self.book_keeping_modified_set = 0
+        self.book_keeping_hits = 0
+        self.book_keeping_misses = 0
 
     def resize(self, sets=1, blocks_per_set=1, words_per_block=1):
         self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
@@ -59,6 +62,8 @@ class Cache:
                 self.book_keeping_modified_set = set
                 self.book_keeping_modified_block = block
                 self.book_keeping_modified_words.append(word_index)
+                self.book_keeping_modified_just_one = True
+                self.book_keeping_modified_word = word_index
                 return
 
     def place(self, address, data):
@@ -151,18 +156,22 @@ class Memory:
         self.data_ready = False
         self.cache.book_keeping_was_modified = False
         self.cache.book_keeping_modified_words = []
+        self.cache.book_keeping_modified_just_one = False
         if self.is_processing():
             if self.is_writing_to_mem:
                 self._handle_writing_to_mem()
             elif MemorySettings.cache_active and self.cache.is_in_cache(self.block_address):
                 self._handle_read_write_in_cache()
+                self.cache.book_keeping_hits += 1
             elif self.wait_cycles == 0:
                 self.wait_cycles = MemorySettings.memory_wait_cycles
                 self.processing = False
                 self.data_ready = True
                 if self.is_write:
+                    self.cache.book_keeping_misses += 1
                     self._handle_write()
                 else:
+                    self.cache.book_keeping_misses += 1
                     self._handle_read()
             else:
                 self.wait_cycles = self.wait_cycles - 1
@@ -185,23 +194,26 @@ class Memory:
                     OldBlock.was_dirty = False
 
     def _handle_write(self):
-        word_index = self.word_address & (MemorySettings.num_words_per_block - 1)
-        block_data = []
-        for word in range(MemorySettings.num_words_per_block):
-            block_data.append(self.memory[self.block_address + word])
-        block_data[word_index] = self.data_word
-        if self.cache.set_has_empty_block(self.block_address):
-            self.cache.place(self.block_address, block_data)
-            self.cache.modify(self.block_address, block_data, word_index)
+        if not MemorySettings.cache_active:
+            self.memory[self.word_address] = self.data_word
         else:
-            self.cache.replace(self.block_address, block_data)
-            self.cache.modify(self.block_address, block_data, word_index)
-            if OldBlock.was_dirty:
-                self.wait_cycles = MemorySettings.memory_wait_cycles
-                self.processing = True
-                self.data_ready = False
-                self.is_writing_to_mem = True
-                OldBlock.was_dirty = False
+            word_index = self.word_address & (MemorySettings.num_words_per_block - 1)
+            block_data = []
+            for word in range(MemorySettings.num_words_per_block):
+                block_data.append(self.memory[self.block_address + word])
+            block_data[word_index] = self.data_word
+            if self.cache.set_has_empty_block(self.block_address):
+                self.cache.place(self.block_address, block_data)
+                self.cache.modify(self.block_address, block_data, word_index)
+            else:
+                self.cache.replace(self.block_address, block_data)
+                self.cache.modify(self.block_address, block_data, word_index)
+                if OldBlock.was_dirty:
+                    self.wait_cycles = MemorySettings.memory_wait_cycles
+                    self.processing = True
+                    self.data_ready = False
+                    self.is_writing_to_mem = True
+                    OldBlock.was_dirty = False
 
     def _handle_read_write_in_cache(self):
         self.processing = False

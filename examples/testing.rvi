@@ -1,0 +1,57 @@
+
+    sw $5, 0($0)
+    sw $6, 4($0)
+    sw $7, 8($0)
+    sw $8, 12($0)
+    sw $10, 28($0)
+    sw $10, 24($0)
+    lw $10, 40($0)
+    lw $10, 40($0)
+    lw $10, 32($0)
+    lw $10, 36($0)
+    nop
+    nop
+    sw $1, 0($0)
+    sw $2, 4($0)
+    lw $10, 52($0)
+    lw $10, 68($0)
+    lw $10, 8($0)
+    lw $10, 12($0)
+    lw $10, 16($0)
+    lw $10, 8($0)
+    lw $10, 12($0)
+    lw $10, 16($0)
+    lw $10, 20($0)
+    nop
+    lw $10, 20($0)
+    sw $2, 16($0)
+    lw $10, 4($0)
+    nop
+    lw $11, 4($0)
+    add $1, $2, $4
+    sltu $2, $1, $2
+    add $5, $3, $5
+    add $6, $2, $5
+    nop
+    nop
+    nop
+    nop
+    nop
+    addi $1, $1, 1
+    addi $1, $0, 0              # loop counter
+    addi $2, $0, 1
+    addi $3, $0, 9              # loop limit
+    addi $4, $0, 1              # fibonacci no. 1
+    addi $5, $0, 1              # fibonacci no. 2
+LOOP:
+    addi $1, $1, 1              # counter++
+    nop
+    nop
+    beq $3, $1, DONE            # if counter == loop limit then done!
+    add $4, $4, $5
+    add $5, $5, $4
+    beq $0, $0, LOOP            # jump
+DONE:
+    sw $4, 8($0)
+    sw $5, 12($0)
+    addi $1, $1, 1

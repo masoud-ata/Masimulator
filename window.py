@@ -62,13 +62,16 @@ class Screen:
 
     def _memory_window_init(self):
         self._cache_visual_init()
-        self.cache_window = None
+        self.memory_window = None
+        self.memory_window_open = False
         self.cache_visual_pane = None
         self.cache_num_sets_entry = None
         self.cache_num_blocks_entry = None
         self.cache_num_words_entry = None
         self.cache_is_active = BooleanVar()
         self.memory_wait_cycles_entry = None
+        self.cache_hit_rate = StringVar()
+        self.cache_hit_rate.set("0.00")
 
     def _about_window(self):
         about_window = Toplevel(self.pipeline_window)
@@ -146,7 +149,7 @@ class Screen:
             self.refresh_cache_window()
 
     def _memory_window_config_setup(self):
-        cache_config_pane = ttk.Panedwindow(self.cache_window, orient=VERTICAL, width=100, height=100)
+        cache_config_pane = ttk.Panedwindow(self.memory_window, orient=VERTICAL, width=100, height=100)
         cache_config_pane.place(x=10, y=10)
 
         c = Checkbutton(cache_config_pane, text="activate cache", variable=self.cache_is_active, command=self.toggle_cache_active)
@@ -156,17 +159,17 @@ class Screen:
         l.grid(row=1, column=0, sticky=W)
         self.cache_num_sets_entry = Entry(cache_config_pane, font=("Courier 10"), width=5)
         self.cache_num_sets_entry.grid(row=1, column=1, sticky=W)
-        self.cache_num_sets_entry.insert(0, 0)
+        self.cache_num_sets_entry.insert(0, MemorySettings.num_sets)
         l = Label(cache_config_pane, text="number of blocks/set")
         l.grid(row=2, column=0, sticky=W)
         self.cache_num_blocks_entry = Entry(cache_config_pane, font=("Courier 10"), width=5)
         self.cache_num_blocks_entry.grid(row=2, column=1, sticky=W)
-        self.cache_num_blocks_entry.insert(0, 0)
+        self.cache_num_blocks_entry.insert(0, MemorySettings.num_blocks_per_set)
         l = Label(cache_config_pane, text="number of words/block")
         l.grid(row=3, column=0, sticky=W)
         self.cache_num_words_entry = Entry(cache_config_pane, font=("Courier 10"), width=5)
         self.cache_num_words_entry.grid(row=3, column=1, sticky=W)
-        self.cache_num_words_entry.insert(0, 0)
+        self.cache_num_words_entry.insert(0, MemorySettings.num_words_per_block)
 
         b = Button(cache_config_pane, text="Apply Settings", command=self.apply_memory_setings_callback)
         b.grid(row=0, column=2, sticky=W)
@@ -175,11 +178,16 @@ class Screen:
         l.grid(row=1, column=2, sticky=W)
         self.memory_wait_cycles_entry = Entry(cache_config_pane, font=("Courier 10"), width=5)
         self.memory_wait_cycles_entry.grid(row=1, column=3, sticky=W)
-        self.memory_wait_cycles_entry.insert(0, 0)
+        self.memory_wait_cycles_entry.insert(0, MemorySettings.memory_wait_cycles)
+
+        l = Label(cache_config_pane, text="hit rate")
+        l.grid(row=2, column=2, sticky=W)
+        l = Label(cache_config_pane, textvariable=self.cache_hit_rate, width=5, relief=GROOVE)
+        l.grid(row=2, column=3, sticky=W)
 
     def _memory_window_visual_setup(self):
         cache_size = self.risc_v.state.data_memory_system.cache.size
-        self.cache_visual_pane = ttk.Panedwindow(self.cache_window, orient=VERTICAL, width=400, height=300)
+        self.cache_visual_pane = ttk.Panedwindow(self.memory_window, orient=VERTICAL, width=400, height=300)
         self.cache_visual_pane.place(x=50, y=120)
 
         layout = ttk.Notebook(self.cache_visual_pane)
@@ -233,11 +241,17 @@ class Screen:
         layout.add(tabel, text="data cache")
         layout.pack(fill="both")
 
+    def on_memory_window_closing(self):
+        self.memory_window_open = False
+        self.memory_window.destroy()
+
     def _setup_memory_window(self):
-        self.cache_window = Toplevel(self.pipeline_window)
-        self.cache_window.wm_title("Memory")
-        self.cache_window.geometry("700" + "x" + "400")
-        self.cache_window.bind('<Key>', lambda a: self._key_press_callback(a))
+        self.memory_window_open = True
+        self.memory_window = Toplevel(self.pipeline_window)
+        self.memory_window.wm_title("Memory")
+        self.memory_window.geometry("700" + "x" + "400")
+        self.memory_window.bind('<Key>', lambda a: self._key_press_callback(a))
+        self.memory_window.protocol("WM_DELETE_WINDOW", self.on_memory_window_closing)
         self._memory_window_config_setup()
         self._memory_window_visual_setup()
 
@@ -630,20 +644,26 @@ class Screen:
 
     def refresh_cache_window(self):
         if MemorySettings.cache_active:
-            for set in range(self.risc_v.state.data_memory_system.cache.size["sets"]):
-                for block in range(self.risc_v.state.data_memory_system.cache.size["blocks_per_set"]):
-                    self.cache_tags[set][block].set(self.risc_v.state.data_memory_system.cache.tags[set, block])
-                    self.cache_valid_bits[set][block].set(self.risc_v.state.data_memory_system.cache.valid_bits[set, block])
-                    self.cache_dirty_bits[set][block].set(self.risc_v.state.data_memory_system.cache.dirty_bits[set, block])
-                    for word in range(self.risc_v.state.data_memory_system.cache.size["words_per_block"]):
-                        self.cache_values[set][block][word].set(self.risc_v.state.data_memory_system.cache.contents[set, block, word])
+            cache = self.risc_v.state.data_memory_system.cache
+            hits_plus_misses = cache.book_keeping_hits + cache.book_keeping_misses
+            hit_rate = (cache.book_keeping_hits / hits_plus_misses) if hits_plus_misses != 0 else cache.book_keeping_hits / 1.0
+            self.cache_hit_rate.set("{:.2f}".format(hit_rate))
+            for set in range(cache.size["sets"]):
+                for block in range(cache.size["blocks_per_set"]):
+                    self.cache_tags[set][block].set(cache.tags[set, block])
+                    self.cache_valid_bits[set][block].set(cache.valid_bits[set, block])
+                    self.cache_dirty_bits[set][block].set(cache.dirty_bits[set, block])
+                    for word in range(cache.size["words_per_block"]):
+                        self.cache_values[set][block][word].set(cache.contents[set, block, word])
                         color = "white"
-                        if self.risc_v.state.data_memory_system.cache.book_keeping_was_modified and \
-                            self.risc_v.state.data_memory_system.cache.book_keeping_modified_set == set and \
-                            self.risc_v.state.data_memory_system.cache.book_keeping_modified_block == block and \
-                            word in self.risc_v.state.data_memory_system.cache.book_keeping_modified_words:
-                                color = "yellow"
-                        self.cache_word_lables[set][block][word].config(bg=color, fg="black")
+                        if cache.book_keeping_was_modified and cache.book_keeping_modified_set == set and \
+                            cache.book_keeping_modified_block == block and word in cache.book_keeping_modified_words:
+                                if cache.book_keeping_modified_just_one and word == cache.book_keeping_modified_word:
+                                    color = "orange"
+                                else:
+                                    color = "yellow"
+                        if self.memory_window_open:
+                            self.cache_word_lables[set][block][word].config(bg=color, fg="black")
 
     def toggle_cache_active(self):
         MemorySettings.cache_active = self.cache_is_active.get()

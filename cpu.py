@@ -406,43 +406,49 @@ class CPU:
             self.state.pc = self.state.signals.if_signals.next_pc
 
     def _register_id_ex(self):
-        self.state.pipe.id_ex.register_file_data1 = self.state.signals.id_signals.rf_data1
-        self.state.pipe.id_ex.register_file_data2 = self.state.signals.id_signals.rf_data2
-        self.state.pipe.id_ex.register_file_rs1 = self.state.signals.id_signals.rs1
-        self.state.pipe.id_ex.register_file_rs2 = self.state.signals.id_signals.rs2
-        self.state.pipe.id_ex.register_file_rd = self.state.signals.id_signals.instruction.rd()
-        self.state.pipe.id_ex.control_alu_op = self.state.signals.id_signals.control_alu_op
-        self.state.pipe.id_ex.control_alu_src = self.state.signals.id_signals.control_alu_src
-        self.state.pipe.id_ex.control_mem_read = self.state.signals.id_signals.control_mem_read
-        self.state.pipe.id_ex.control_mem_write = self.state.signals.id_signals.control_mem_write
-        self.state.pipe.id_ex.control_reg_write = self.state.signals.id_signals.control_reg_write
-        self.state.pipe.id_ex.control_mem_read_mode = self.state.signals.id_signals.control_mem_read_mode
-        self.state.pipe.id_ex.control_mem_to_reg = self.state.signals.id_signals.control_mem_to_reg
-        self.state.pipe.id_ex.sign_extended_immediate = self.state.signals.id_signals.sign_extended_immediate
+        id_ex = self.state.pipe.id_ex
+        id_signals = self.state.signals.id_signals
+        id_ex.register_file_data1 = id_signals.rf_data1
+        id_ex.register_file_data2 = id_signals.rf_data2
+        id_ex.register_file_rs1 = id_signals.rs1
+        id_ex.register_file_rs2 = id_signals.rs2
+        id_ex.register_file_rd = id_signals.instruction.rd()
+        id_ex.control_alu_op = id_signals.control_alu_op
+        id_ex.control_alu_src = id_signals.control_alu_src
+        id_ex.control_mem_read = id_signals.control_mem_read
+        id_ex.control_mem_write = id_signals.control_mem_write
+        id_ex.control_reg_write = id_signals.control_reg_write
+        id_ex.control_mem_read_mode = id_signals.control_mem_read_mode
+        id_ex.control_mem_to_reg = id_signals.control_mem_to_reg
+        id_ex.sign_extended_immediate = id_signals.sign_extended_immediate
         if self.state.hazard_detected == 1:
-            self.state.pipe.id_ex.instruction = Instruction(0).nop()
-            self.state.pipe.id_ex.nop_inserted = True
+            id_ex.instruction = Instruction(0).nop()
+            id_ex.nop_inserted = True
         else:
-            self.state.pipe.id_ex.instruction = self.state.pipe.if_id.instruction
-            self.state.pipe.id_ex.nop_inserted = self.state.pipe.if_id.nop_inserted
+            id_ex.instruction = self.state.pipe.if_id.instruction
+            id_ex.nop_inserted = self.state.pipe.if_id.nop_inserted
 
     def _register_ex_mem(self):
-        self.state.pipe.ex_mem.control_mem_read = self.state.pipe.id_ex.control_mem_read
-        self.state.pipe.ex_mem.control_mem_read_mode = self.state.pipe.id_ex.control_mem_read_mode
-        self.state.pipe.ex_mem.control_mem_write = self.state.pipe.id_ex.control_mem_write
-        self.state.pipe.ex_mem.control_reg_write = self.state.pipe.id_ex.control_reg_write
-        self.state.pipe.ex_mem.control_mem_to_reg = self.state.pipe.id_ex.control_mem_to_reg
-        self.state.pipe.ex_mem.alu_result = self.state.signals.ex_signals.alu_result
-        self.state.pipe.ex_mem.register_file_data2 =self.state.signals.ex_signals.right_forward_out
-        self.state.pipe.ex_mem.register_file_rd = self.state.pipe.id_ex.register_file_rd
-        self.state.pipe.ex_mem.instruction = self.state.pipe.id_ex.instruction
-        self.state.pipe.ex_mem.nop_inserted = self.state.pipe.id_ex.nop_inserted
+        ex_mem = self.state.pipe.ex_mem
+        id_ex = self.state.pipe.id_ex
+        ex_mem.control_mem_read = id_ex.control_mem_read
+        ex_mem.control_mem_read_mode = id_ex.control_mem_read_mode
+        ex_mem.control_mem_write = id_ex.control_mem_write
+        ex_mem.control_reg_write = id_ex.control_reg_write
+        ex_mem.control_mem_to_reg = id_ex.control_mem_to_reg
+        ex_mem.alu_result = self.state.signals.ex_signals.alu_result
+        ex_mem.register_file_data2 =self.state.signals.ex_signals.right_forward_out
+        ex_mem.register_file_rd = id_ex.register_file_rd
+        ex_mem.instruction = id_ex.instruction
+        ex_mem.nop_inserted = id_ex.nop_inserted
 
     def _register_mem_wb(self):
-        self.state.pipe.mem_wb.control_reg_write = self.state.pipe.ex_mem.control_reg_write
-        self.state.pipe.mem_wb.control_mem_to_reg = self.state.pipe.ex_mem.control_mem_to_reg
-        self.state.pipe.mem_wb.memory_data = self.state.signals.mem_signals.mem_data
-        self.state.pipe.mem_wb.alu_result = self.state.pipe.ex_mem.alu_result
-        self.state.pipe.mem_wb.register_file_rd = self.state.pipe.ex_mem.register_file_rd
-        self.state.pipe.mem_wb.instruction = self.state.pipe.ex_mem.instruction
-        self.state.pipe.mem_wb.nop_inserted = self.state.pipe.ex_mem.nop_inserted
+        mem_wb = self.state.pipe.mem_wb
+        ex_mem = self.state.pipe.ex_mem
+        mem_wb.control_reg_write = ex_mem.control_reg_write
+        mem_wb.control_mem_to_reg = ex_mem.control_mem_to_reg
+        mem_wb.memory_data = self.state.signals.mem_signals.mem_data
+        mem_wb.alu_result = ex_mem.alu_result
+        mem_wb.register_file_rd = ex_mem.register_file_rd
+        mem_wb.instruction = ex_mem.instruction
+        mem_wb.nop_inserted = ex_mem.nop_inserted
