@@ -47,7 +47,7 @@ class Screen:
         self.register_file_entries = self._setup_register_file_entries()
         self.show_data_mem_in_hex = BooleanVar()
         [self.data_memory_box, self.data_memory_address_box, self.data_mem_scrollbar] = \
-            self._setup_data_mem_box(self.risc_v.state.data_memory_system.memory, self.data_mem_yview, self.data_mem_yview_tie)
+            self._setup_data_mem_box(g_memory, self.data_mem_yview, self.data_mem_yview_tie)
         [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
             self._setup_program_mem_box(self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
 
@@ -380,7 +380,7 @@ class Screen:
         scrollbar.grid(row=2, column=2, rowspan=15, columnspan=1, sticky=NS)
         mem_text.config(yscrollcommand=data_mem_yview_tie)
 
-        mem_addr_text = Text(mem_pane, height=20, width=5)
+        mem_addr_text = Text(mem_pane, height=20, width=6)
         mem_addr_text.grid(row=2, column=0, sticky=W)
         mem_addr_text.config(yscrollcommand=data_mem_yview_tie)
 
@@ -527,7 +527,7 @@ class Screen:
                             mem_data = int(elem[i:i + max_width], 16)
                         else:
                             mem_data = to_int32(int(elem[i:i + max_width]))
-                        self.risc_v.state.data_memory_system.memory[address] = mem_data
+                        g_memory[address] = mem_data
                     except (ValueError, IndexError) as error:
                         pass
                     address = address + 1
@@ -537,7 +537,7 @@ class Screen:
                         mem_data = int(elem, 16)
                     else:
                         mem_data = to_int32(int(elem))
-                    self.risc_v.state.data_memory_system.memory[address] = mem_data
+                    g_memory[address] = mem_data
                 except (ValueError, IndexError) as error:
                     pass
                 address = address + 1
@@ -557,19 +557,13 @@ class Screen:
 
     def refresh_colored_data_memory_box(self, data_mem_old, d_mem_yview_old):
         self.refresh_data_memory_box()
-
-        address = 0
-        for value in self.risc_v.state.data_memory_system.memory:
-            if self.show_data_mem_in_hex.get():
-                value = '{0:08x}'.format(value) + "\n"
-            else:
-                value = str(value)
-            if data_mem_old[address] != self.risc_v.state.data_memory_system.memory[address]:
-                self.data_memory_box.tag_add("here", str(address + 1) + ".0", str(address + 1) + "." + str(len(value)))
-                self.data_memory_box.tag_config("here", background="blue", foreground="yellow")
-            address = address + 1
-
         self.data_memory_box.yview_moveto(d_mem_yview_old)
+        address = self.risc_v.state.data_memory_system.history.block_address
+        for word in range(len(self.risc_v.state.data_memory_system.history.new_block)):
+            value = self.risc_v.state.data_memory_system.history.new_block[word]
+            value = '{0:08x}'.format(value) + "\n" if self.show_data_mem_in_hex.get() else str(value)
+            self.data_memory_box.tag_add("here", str(address + word + 1) + ".0", str(address + + word + 1) + "." + str(len(value)))
+            self.data_memory_box.tag_config("here", background="blue", foreground="yellow")
 
     def refresh_data_memory_box(self):
         for tag in self.data_memory_box.tag_names():
@@ -578,7 +572,7 @@ class Screen:
         text = ""
         self.data_memory_box.delete('1.0', END)
         self.data_memory_box.edit_reset()
-        for value in self.risc_v.state.data_memory_system.memory:
+        for value in g_memory:
             if self.show_data_mem_in_hex.get():
                 text = text + '{0:08x}'.format(int(to_uint32(value))) + "\n"
             else:
@@ -590,7 +584,7 @@ class Screen:
         self.modify_register_file()
         self.modify_data_memory(self.show_data_mem_in_hex.get())
 
-        data_mem_old = self.risc_v.state.data_memory_system.memory.copy()
+        data_mem_old = g_memory.copy()
         d_mem_yview_old = self.data_memory_box.yview()[0]
         p_mem_yview_old = self.program_memory_box.yview()[0]
 
@@ -603,8 +597,11 @@ class Screen:
         self.refresh_statistics()
         self.refresh_cache_window()
 
+    def step_non_visual_callback(self):
+        self.risc_v.tick()
+
     def backstep_callback(self):
-        data_mem_old = self.risc_v.state.data_memory_system.memory.copy()
+        data_mem_old = g_memory.copy()
         d_mem_yview_old = self.data_memory_box.yview()[0]
         p_mem_yview_old = self.program_memory_box.yview()[0]
 
@@ -628,10 +625,13 @@ class Screen:
         self.refresh_cache_window()
 
     def execute_all_callback(self):
+        self.step_callback()
         for i in range(500000):
             if not self.risc_v.is_finished():
-                self.step_callback()
+                self.step_non_visual_callback()
             else:
+                self.backstep_callback()
+                self.step_callback()
                 return
 
     def toggle_forwarding_callback(self):

@@ -173,6 +173,7 @@ class CPU:
 
     def back_tick(self):
         if len(self.trace) != 0:
+            self.state.data_memory_system.back_tick()
             del self.state
             self.state = copy.deepcopy(self.trace.pop())
             self.state.cycles_executed = self.state.cycles_executed - 1
@@ -452,3 +453,6 @@ class CPU:
         mem_wb.register_file_rd = ex_mem.register_file_rd
         mem_wb.instruction = ex_mem.instruction
         mem_wb.nop_inserted = ex_mem.nop_inserted
+
+
+print(g_memory[0])
