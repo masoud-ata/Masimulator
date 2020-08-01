@@ -70,8 +70,10 @@ class Screen:
         self.cache_num_words_entry = None
         self.cache_is_active = BooleanVar()
         self.memory_wait_cycles_entry = None
+        self.memory_word_transfer_cycles_entry = None
         self.cache_hit_rate = StringVar()
         self.cache_hit_rate.set("0.00")
+        self.cache_replacement_selector = ttk.Combobox()
 
     def _about_window(self):
         about_window = Toplevel(self.pipeline_window)
@@ -100,17 +102,20 @@ class Screen:
         f.configure(underline=True)
         link2.configure(font=f)
 
+    # Creates 3D arrays for cache visualization
     def _cache_visual_init(self):
         self.cache_values = []
         self.cache_tags = []
         self.cache_valid_bits = []
         self.cache_dirty_bits = []
+        self.cache_replace_bits = []
         self.cache_word_lables = []
         for set in range(self.risc_v.state.data_memory_system.cache.size["sets"]):
             s = []
             s_t = []
             s_v = []
             s_d = []
+            s_r = []
             s_l = []
             for block in range(self.risc_v.state.data_memory_system.cache.size["blocks_per_set"]):
                 b = []
@@ -118,6 +123,7 @@ class Screen:
                 s_t.append(StringVar())
                 s_v.append(StringVar())
                 s_d.append(StringVar())
+                s_r.append(StringVar())
                 b_l = []
                 s_l.append(b_l)
                 for word in range(self.risc_v.state.data_memory_system.cache.size["words_per_block"]):
@@ -127,9 +133,11 @@ class Screen:
             self.cache_tags.append(s_t)
             self.cache_valid_bits.append(s_v)
             self.cache_dirty_bits.append(s_d)
+            self.cache_replace_bits.append(s_r)
             self.cache_word_lables.append(s_l)
 
     def apply_memory_setings_callback(self):
+        MemorySettings.cache_replacement_policy = self.cache_replacement_selector.get()
         num_sets = 1
         num_blocks_per_set = 1
         num_words_per_block = 1
@@ -138,6 +146,7 @@ class Screen:
             num_blocks_per_set = int(self.cache_num_blocks_entry.get())
             num_words_per_block = int(self.cache_num_words_entry.get())
             MemorySettings.memory_wait_cycles = int(self.memory_wait_cycles_entry.get())
+            MemorySettings.word_transfer_cycles = int(self.memory_word_transfer_cycles_entry.get())
         except ValueError:
             return
         if num_sets > 0 and num_blocks_per_set > 0 and num_words_per_block > 0:
@@ -171,19 +180,31 @@ class Screen:
         self.cache_num_words_entry.grid(row=3, column=1, sticky=W)
         self.cache_num_words_entry.insert(0, MemorySettings.num_words_per_block)
 
-        b = Button(cache_config_pane, text="Apply Settings", command=self.apply_memory_setings_callback)
-        b.grid(row=0, column=2, sticky=W)
-
         l = Label(cache_config_pane, text="memory wait cycles")
         l.grid(row=1, column=2, sticky=W)
-        self.memory_wait_cycles_entry = Entry(cache_config_pane, font=("Courier 10"), width=5)
+        self.memory_wait_cycles_entry = Entry(cache_config_pane, font=("Courier 10"), width=9)
         self.memory_wait_cycles_entry.grid(row=1, column=3, sticky=W)
         self.memory_wait_cycles_entry.insert(0, MemorySettings.memory_wait_cycles)
 
-        l = Label(cache_config_pane, text="hit rate")
+        l = Label(cache_config_pane, text="word transfer cycles")
         l.grid(row=2, column=2, sticky=W)
+        self.memory_word_transfer_cycles_entry = Entry(cache_config_pane, font=("Courier 10"), width=9)
+        self.memory_word_transfer_cycles_entry.grid(row=2, column=3, sticky=W)
+        self.memory_word_transfer_cycles_entry.insert(0, MemorySettings.word_transfer_cycles)
+
+        l = Label(cache_config_pane, text="hit rate")
+        l.grid(row=1, column=4, sticky=W)
         l = Label(cache_config_pane, textvariable=self.cache_hit_rate, width=5, relief=GROOVE)
-        l.grid(row=2, column=3, sticky=W)
+        l.grid(row=1, column=5, sticky=W)
+
+        l = Label(cache_config_pane, text="replacement policy")
+        l.grid(row=3, column=2, sticky=W)
+        self.cache_replacement_selector = ttk.Combobox(cache_config_pane, values=MemorySettings.cache_replacement_policy_choices, width=9, state="readonly")
+        self.cache_replacement_selector.grid(row=3, column=3)
+        self.cache_replacement_selector.current(MemorySettings.cache_replacement_policy_choices.index(MemorySettings.cache_replacement_policy))
+
+        b = Button(cache_config_pane, text="Apply Settings", command=self.apply_memory_setings_callback)
+        b.grid(row=3, column=4, sticky=W)
 
     def _memory_window_visual_setup(self):
         cache_size = self.risc_v.state.data_memory_system.cache.size
@@ -197,6 +218,7 @@ class Screen:
 
         set_width = 3
         valid_width = 2
+        replace_width = 2
         dirty_width = 2
         tag_width = 7
         word_width = 13
@@ -221,6 +243,13 @@ class Screen:
                     valid_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
                 cache_valid = Label(tabel, textvariable=self.cache_valid_bits[set][block], width=valid_width, bg="white", fg="black")
                 cache_valid.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
+                if MemorySettings.cache_replacement_policy != "Random":
+                    col = col + 1
+                    if set == 0:
+                        replace_title = Label(tabel, text="R", width=replace_width, fg="black")
+                        replace_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
+                    cache_replace = Label(tabel, textvariable=self.cache_replace_bits[set][block], width=replace_width, bg="white", fg="black")
+                    cache_replace.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
                 col = col + 1
                 if set == 0:
                     tag_title = Label(tabel, text="Tag", width=tag_width, fg="black")
@@ -653,10 +682,13 @@ class Screen:
                     self.cache_tags[set][block].set(cache.tags[set, block])
                     self.cache_valid_bits[set][block].set(cache.valid_bits[set, block])
                     self.cache_dirty_bits[set][block].set(cache.dirty_bits[set, block])
+                    self.cache_replace_bits[set][block].set(cache.replace_bits[set, block])
                     for word in range(cache.size["words_per_block"]):
                         self.cache_values[set][block][word].set(cache.contents[set, block, word])
                         color = "white"
-                        if cache.book_keeping_was_modified and cache.book_keeping_modified_set == set and \
+                        if cache.book_keeping_read_set == set and cache.book_keeping_read_block == block and cache.book_keeping_read_word == word:
+                            color = "green"
+                        elif cache.book_keeping_was_modified and cache.book_keeping_modified_set == set and \
                             cache.book_keeping_modified_block == block and word in cache.book_keeping_modified_words:
                                 if cache.book_keeping_modified_just_one and word == cache.book_keeping_modified_word:
                                     color = "orange"

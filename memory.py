@@ -18,10 +18,12 @@ class MemorySettings:
     num_blocks_per_set = 1
     num_words_per_block = 1
     cache_active = False
-    cache_replacement_policy = "random"
+    cache_replacement_policy_choices = ["Random", "FIFO", "LRU"]
+    cache_replacement_policy = cache_replacement_policy_choices[0]
     cache_is_write_back = True
 
     memory_wait_cycles = 0
+    word_transfer_cycles = 0
 
 
 class Cache:
@@ -30,11 +32,15 @@ class Cache:
         self.tags = np.zeros((sets, blocks_per_set), dtype=np.int)
         self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
         self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
+        self.replace_bits = np.full((sets, blocks_per_set), MemorySettings.num_blocks_per_set-1, dtype=np.int)
         self.size = {"sets": sets, "blocks_per_set": blocks_per_set, "words_per_block": words_per_block}
+        self.book_keeping_read_word = -1
+        self.book_keeping_read_set = 0
+        self.book_keeping_read_block = 0
         self.book_keeping_was_modified = False
         self.book_keeping_modified_words = []
         self.book_keeping_modified_just_one = False
-        self.book_keeping_modified_block = False
+        self.book_keeping_modified_block = 0
         self.book_keeping_modified_set = 0
         self.book_keeping_hits = 0
         self.book_keeping_misses = 0
@@ -64,6 +70,11 @@ class Cache:
                 self.book_keeping_modified_words.append(word_index)
                 self.book_keeping_modified_just_one = True
                 self.book_keeping_modified_word = word_index
+                if MemorySettings.cache_replacement_policy == "LRU":
+                    if self.replace_bits[set][block] != 0:
+                        for b in range(MemorySettings.num_blocks_per_set):
+                            self.replace_bits[set][b] = min(self.replace_bits[set][b]+1, MemorySettings.num_blocks_per_set-1)
+                        self.replace_bits[set][block] = 0
                 return
 
     def place(self, address, data):
@@ -76,7 +87,12 @@ class Cache:
                 self.tags[set, block] = tag
                 self.valid_bits[set, block] = 1
                 self.dirty_bits[set, block] = 0
-
+                if MemorySettings.cache_replacement_policy == "FIFO":
+                    self.replace_bits[set][block] = block
+                elif MemorySettings.cache_replacement_policy == "LRU":
+                    for b in range(MemorySettings.num_blocks_per_set):
+                        self.replace_bits[set][b] = min(self.replace_bits[set][b]+1, MemorySettings.num_blocks_per_set-1)
+                    self.replace_bits[set][block] = 0
                 self.book_keeping_was_modified = True
                 self.book_keeping_modified_set = set
                 self.book_keeping_modified_block = block
@@ -87,27 +103,47 @@ class Cache:
     def replace(self, address, data):
         tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
         set = tag & (self.size["sets"]-1)
-        if MemorySettings.cache_replacement_policy == "random":
+        replaced_block = self._find_a_replacement_block(set)
+
+        OldBlock.was_dirty = self.dirty_bits[set][replaced_block] == 1
+        block_data = []
+        for word in range(MemorySettings.num_words_per_block):
+            block_data.append(int(self.contents[set, replaced_block, word]))
+        OldBlock.data = block_data
+        OldBlock.address = int(self.tags[set, replaced_block]) * MemorySettings.num_words_per_block
+
+        for word in range(MemorySettings.num_words_per_block):
+            self.contents[set, replaced_block, word] = data[word]
+        self.tags[set, replaced_block] = tag
+        self.valid_bits[set, replaced_block] = 1
+        self.dirty_bits[set, replaced_block] = 0
+
+        self.book_keeping_was_modified = True
+        self.book_keeping_modified_set = set
+        self.book_keeping_modified_block = replaced_block
+        for word in range(MemorySettings.num_words_per_block):
+            self.book_keeping_modified_words.append(word)
+
+    def _find_a_replacement_block(self, set):
+        replaced_block = 0
+        if MemorySettings.cache_replacement_policy == "Random":
             replaced_block = randrange(self.size["blocks_per_set"])
-
-            OldBlock.was_dirty = self.dirty_bits[set][replaced_block] == 1
-            block_data = []
-            for word in range(MemorySettings.num_words_per_block):
-                block_data.append(int(self.contents[set, replaced_block, word]))
-            OldBlock.data = block_data
-            OldBlock.address = int(self.tags[set, replaced_block]) << (MemorySettings.num_words_per_block-1)
-
-            for word in range(MemorySettings.num_words_per_block):
-                self.contents[set, replaced_block, word] = data[word]
-            self.tags[set, replaced_block] = tag
-            self.valid_bits[set, replaced_block] = 1
-            self.dirty_bits[set, replaced_block] = 0
-
-            self.book_keeping_was_modified = True
-            self.book_keeping_modified_set = set
-            self.book_keeping_modified_block = replaced_block
-            for word in range(MemorySettings.num_words_per_block):
-                self.book_keeping_modified_words.append(word)
+        elif MemorySettings.cache_replacement_policy == "FIFO":
+            for block in range(MemorySettings.num_blocks_per_set):
+                if self.replace_bits[set][block] == 0:
+                    replaced_block = block
+                    for b in range(MemorySettings.num_blocks_per_set):
+                        self.replace_bits[set][b] = (self.replace_bits[set][b] - 1) % MemorySettings.num_blocks_per_set
+                    break
+        elif MemorySettings.cache_replacement_policy == "LRU":
+            for block in range(MemorySettings.num_blocks_per_set):
+                if self.replace_bits[set][block] == MemorySettings.num_blocks_per_set-1:
+                    for b in range(MemorySettings.num_blocks_per_set):
+                        self.replace_bits[set][b] = min(self.replace_bits[set][b]+1, MemorySettings.num_blocks_per_set-1)
+                    self.replace_bits[set][block] = 0
+                    replaced_block = block
+                    break
+        return replaced_block
 
     def read(self, address):
         tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
@@ -117,6 +153,13 @@ class Cache:
                 block_data = []
                 for word in range(MemorySettings.num_words_per_block):
                     block_data.append(int(self.contents[set, block, word]))
+                self.book_keeping_read_set = set
+                self.book_keeping_read_block = block
+                if MemorySettings.cache_replacement_policy == "LRU":
+                    if self.replace_bits[set][block] != 0:
+                        for b in range(MemorySettings.num_blocks_per_set):
+                            self.replace_bits[set][b] = min(self.replace_bits[set][b]+1, MemorySettings.num_blocks_per_set-1)
+                        self.replace_bits[set][block] = 0
                 return block_data
 
     def set_has_empty_block(self, address):
@@ -141,7 +184,8 @@ class Cache:
 
 class Memory:
     def __init__(self):
-        self.wait_cycles = MemorySettings.memory_wait_cycles
+        self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles + MemorySettings.word_transfer_cycles * MemorySettings.num_words_per_block
+        self.wait_cycles = self.total_memory_penalty_cycles
         self.memory = [0] * MEMORY_SIZE
         self.cache = Cache(MemorySettings.num_sets, MemorySettings.num_blocks_per_set, MemorySettings.num_words_per_block)
         self.processing = False
@@ -154,6 +198,7 @@ class Memory:
 
     def tick(self):
         self.data_ready = False
+        self.cache.book_keeping_read_word = -1
         self.cache.book_keeping_was_modified = False
         self.cache.book_keeping_modified_words = []
         self.cache.book_keeping_modified_just_one = False
@@ -164,7 +209,7 @@ class Memory:
                 self._handle_read_write_in_cache()
                 self.cache.book_keeping_hits += 1
             elif self.wait_cycles == 0:
-                self.wait_cycles = MemorySettings.memory_wait_cycles
+                self.wait_cycles = self.total_memory_penalty_cycles
                 self.processing = False
                 self.data_ready = True
                 if self.is_write:
@@ -187,7 +232,7 @@ class Memory:
             else:
                 self.cache.replace(self.block_address, block_data)
                 if OldBlock.was_dirty:
-                    self.wait_cycles = MemorySettings.memory_wait_cycles
+                    self.wait_cycles = self.total_memory_penalty_cycles
                     self.processing = True
                     self.data_ready = False
                     self.is_writing_to_mem = True
@@ -209,7 +254,7 @@ class Memory:
                 self.cache.replace(self.block_address, block_data)
                 self.cache.modify(self.block_address, block_data, word_index)
                 if OldBlock.was_dirty:
-                    self.wait_cycles = MemorySettings.memory_wait_cycles
+                    self.wait_cycles = self.total_memory_penalty_cycles
                     self.processing = True
                     self.data_ready = False
                     self.is_writing_to_mem = True
@@ -225,10 +270,11 @@ class Memory:
             self.cache.modify(self.block_address, block_data, word_index)
         else:
             self.data_word = block_data[word_index]
+            self.cache.book_keeping_read_word = word_index
 
     def _handle_writing_to_mem(self):
         if self.wait_cycles == 0:
-            self.wait_cycles = MemorySettings.memory_wait_cycles
+            self.wait_cycles = self.total_memory_penalty_cycles
             self.processing = False
             self.data_ready = True
             for word in range(MemorySettings.num_words_per_block):
