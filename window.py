@@ -9,6 +9,7 @@ import webbrowser
 from tkinter import font
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
+import io
 
 
 class Screen:
@@ -22,8 +23,10 @@ class Screen:
         self.pipeline_window = ttk.Frame(nb)
         self.editor_window = ttk.Frame(nb)
 
-        self.editor_text = ScrolledText(self.editor_window)
-        self.editor_text.pack(expand=1, fill="both")
+        self.assembly_file_name = 'examples/testing.rvi'
+
+        self._editor_setup()
+
         nb.add(self.pipeline_window, text='Pipeline')
         nb.add(self.editor_window, text='Editor')
 
@@ -56,6 +59,33 @@ class Screen:
         self.main_window.bind('<Key>', lambda a: self._key_press_callback(a))
         nb.bind("<<NotebookTabChanged>>", self.on_tab_selected)
         mainloop()
+
+    def _editor_setup(self):
+        self.assembly_file_name_title = StringVar()
+        self.assembly_file_name_title.set(self.assembly_file_name)
+        l = Label(self.editor_window, textvariable=self.assembly_file_name_title)
+        l.pack()
+        buttons_pane = ttk.Panedwindow(self.editor_window, width=500, height=30)
+        b = Button(buttons_pane, text="Save & Assemble", command=self._save_and_assemble)
+        b.grid(row=0, column=0, sticky=W)
+        b = Button(buttons_pane, text="Open & Assemble", command=self._open_and_assemble_file)
+        b.grid(row=0, column=1, sticky=W)
+        buttons_pane.pack()
+        self.editor_text = ScrolledText(self.editor_window, font=("Consolas", 17))
+        self.editor_text.pack(expand=1, fill="both")
+        self.editor_text.insert('end', open(self.assembly_file_name,'r').read())
+        self.editor_text.bind("<Tab>", self._editor_tab_key_pressed)
+        self.editor_text.bind("<Control-s>", self._save_assembly_file)
+        self.editor_text.bind("<KeyRelease>", self._editor_any_key_pressed)
+        self.editor_text.pack()
+        self._highlight_syntax()
+
+    def _editor_any_key_pressed(self, arg):
+        self._highlight_syntax()
+
+    def _editor_tab_key_pressed(self, arg):
+        self.editor_text.insert(INSERT, " " * 4)
+        return 'break'
 
     def on_tab_selected(self, event):
         pass
@@ -290,7 +320,9 @@ class Screen:
 
         file_menu = Menu(menu)
         menu.add_cascade(label='File', menu=file_menu)
-        file_menu.add_command(label='Open & Assemble ...', command=self._open_and_assemble)
+        file_menu.add_command(label='Open & Assemble ...', command=self._open_and_assemble_file)
+        file_menu.add_command(label='Save & Assemble', command=self._save_and_assemble)
+        file_menu.add_command(label='Save       Ctrl+S', command=self._save_assembly_file)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=master.quit)
 
@@ -314,14 +346,51 @@ class Screen:
         reset_button = Button(buttons_pane, text="Execute All (F4)", command=cpu_execute_all)
         reset_button.grid(row=0, column=3, sticky=W)
 
-    def _open_and_assemble(self):
-        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+    def _highlight_syntax(self):
+        for tag in self.editor_text.tag_names():
+            self.editor_text.tag_delete(tag)
+        editor_lines = io.StringIO(self.editor_text.get("1.0", END)).readlines()
+        for line_number, line_string in enumerate(editor_lines):
+            line_tokens = line_string.replace("\n", " ").split(" ")
+            for instruction in g_instruction_set:
+                if instruction in line_tokens:
+                    pos = line_string.find(instruction)
+                    if pos >= 0:
+                        self.editor_text.tag_add("here", str(line_number + 1) + "." + str(pos), str(line_number + 1) + "." + str(pos + len(instruction)))
+                        self.editor_text.tag_config("here", foreground="blue")
+                    break
+            start_pos = line_string.find("#")
+            end_pos = line_string.find("\n")
+            if start_pos >= 0:
+                self.editor_text.tag_add("comment", str(line_number + 1) + "." + str(start_pos), str(line_number + 1) + "." + str(end_pos))
+                self.editor_text.tag_config("comment", foreground="green")
+
+    def _save_and_assemble(self, arg=0):
+        self._save_assembly_file(self.assembly_file_name)
+        self._assemble_file(self.assembly_file_name)
+        self._highlight_syntax()
+
+    def _save_assembly_file(self, arg=0):
+        with open(self.assembly_file_name, "w") as f:
+            f.write(self.editor_text.get("1.0", END)[:-1])
+
+    def _assemble_file(self, filename):
         if filename != "":
             assemble(filename)
+            self.assembly_file_name = filename
+            self.assembly_file_name_title.set(filename)
             self.risc_v.read_program_memory()
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
                 self._setup_program_mem_box(self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
+            self.editor_text.delete('1.0', END)
+            self.editor_text.edit_reset()
+            self.editor_text.insert('end', open(self.assembly_file_name, 'r').read())
+            self._highlight_syntax()
+
+    def _open_and_assemble_file(self):
+        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+        self._assemble_file(filename)
 
     def _setup_check_buttons(self):
         check_buttons_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)
