@@ -13,5 +13,5 @@ LOOP:
     add x5, x5, x4
     beq x0, x0, LOOP            # jump
 DONE:
-    sw x4, 6(x0)
-    sw x5, 7(x0)
+    sw x4, 0(x0)
+    sw x5, 4(x0)

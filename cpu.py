@@ -19,6 +19,7 @@ LOAD = 0b0000011
 STORE = 0b0100011
 BRANCH = 0b1100011
 JAL = 0b1101111
+RET = 0b1100111
 
 
 class MemoryReadMode:
@@ -56,6 +57,7 @@ class IdSignals:
         self.control_mem_to_reg = 0
         self.control_is_branch = 0
         self.control_is_jump = 0
+        self.control_is_return = 0
         self.sign_extended_immediate = 0
         self.branch_address = 0
         self.control_branch_taken = 0
@@ -225,7 +227,9 @@ class CPU:
         self.state.signals.if_signals.instruction = self.memory[self.state.pc >> 2]
         self.state.signals.if_signals.pc = self.state.pc
         self.state.signals.if_signals.pc_plus_4 = self.state.pc + 4
-        if self.state.signals.id_signals.control_branch_taken == 0:
+        if self.state.signals.id_signals.control_is_return == 1:
+            self.state.signals.if_signals.next_pc = self.state.signals.id_signals.rf_data1
+        elif self.state.signals.id_signals.control_branch_taken == 0:
             self.state.signals.if_signals.next_pc = self.state.signals.if_signals.pc_plus_4
         else:
             self.state.signals.if_signals.next_pc = self.state.signals.id_signals.branch_address
@@ -306,6 +310,7 @@ class CPU:
         self.state.signals.id_signals.control_mem_to_reg = 0
         self.state.signals.id_signals.control_is_branch = 0
         self.state.signals.id_signals.control_is_jump = 0
+        self.state.signals.id_signals.control_is_return = 0
         self.state.hazard_detected = 0
 
         if self.hazard_detection_enabled == 1 and self.state.pipe.id_ex.control_mem_read == 1 and \
@@ -350,6 +355,8 @@ class CPU:
         elif opcode == JAL:
             self.state.signals.id_signals.control_is_jump = 1
             self.state.signals.id_signals.control_reg_write = 1
+        elif opcode == RET:
+            self.state.signals.id_signals.control_is_return = 1
         elif opcode == LUI:
             self.state.signals.id_signals.control_alu_op = ALU_RIGHT
             self.state.signals.id_signals.control_alu_src = 1
@@ -364,7 +371,7 @@ class CPU:
         self.state.signals.id_signals.greater_than_equal_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) >= to_unsigned(self.state.signals.id_signals.rf_data2, 32))
         branch_type = Instruction(self.state.pipe.if_id.instruction).funct3()
         self.state.signals.id_signals.control_branch_taken = 0
-        if self.state.signals.id_signals.control_is_jump:
+        if self.state.signals.id_signals.control_is_jump or self.state.signals.id_signals.control_is_return == 1:
             self.state.signals.id_signals.control_branch_taken = 1
         elif self.state.signals.id_signals.control_is_branch:
             if branch_type == BranchTypes.BEQ and self.state.signals.id_signals.zero_flag:

@@ -1,5 +1,5 @@
 g_instruction_set = ('nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
-            'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal')
+            'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal', 'ret')
 
 
 class BranchTypes:
@@ -83,6 +83,7 @@ def disassemble(inst):
     STORE = 0b0100011
     BRANCH = 0b1100011
     JAL =  0b1101111
+    RET = 0b1100111
 
     dic = {
         LUI: "lui",
@@ -91,7 +92,8 @@ def disassemble(inst):
         BRANCH: "",
         ADDI: "addi",
         R_FORMAT: "",
-        JAL: "jal"
+        JAL: "jal",
+        RET: "ret"
     }
 
     try:
@@ -135,6 +137,8 @@ def disassemble(inst):
             instruction.imm_sb())
     elif instruction.opcode() == JAL:
         assembly_code = assembly_code + " x" + str(instruction.rd()) + ", " + str(instruction.imm_uj())
+    elif instruction.opcode() == RET:
+        assembly_code = assembly_code
     elif instruction.opcode() == R_FORMAT:
         alu_control = (instruction.funct7() & 0b100000) >> 2 | instruction.funct3()
         if alu_control == 0b0000:

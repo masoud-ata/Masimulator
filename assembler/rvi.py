@@ -58,6 +58,7 @@ def assemble(assembly_file):
     assembly_file_text = read_assembly_file(assembly_file)
 
     assembly_file_text = replace_nop_with_addi(assembly_file_text)
+    assembly_file_text = replace_ret_with_jalr(assembly_file_text)
     assembly_file_text = replace_nice_looking_stores(assembly_file_text)
     assembly_file_text = replace_nice_looking_loads(assembly_file_text)
     assembly_file_text = replace_nice_looking_registers(assembly_file_text)
@@ -81,6 +82,11 @@ def write_assembly_file(assembly_file, assembly_file_text):
 
 def replace_nop_with_addi(assembly_file_text):
     assembly_file_text = assembly_file_text.replace('nop', 'addi $0, $0, 0')
+    return assembly_file_text
+
+
+def replace_ret_with_jalr(assembly_file_text):
+    assembly_file_text = assembly_file_text.replace('ret', 'jalr $0, $1, 0')
     return assembly_file_text
 
 
