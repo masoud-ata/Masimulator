@@ -1,17 +1,17 @@
-    addi $1, $1, 1
-    addi $1, $0, 0              # loop counter
-    addi $2, $0, 1
-    addi $3, $0, 9              # loop limit
-    addi $4, $0, 1              # fibonacci no. 1
-    addi $5, $0, 1              # fibonacci no. 2
+    addi x1, x1, 1
+    addi x1, x0, 0              # loop counter
+    addi x2, x0, 1
+    addi x3, x0, 9              # loop limit
+    addi x4, x0, 1              # fibonacci no. 1
+    addi x5, x0, 1              # fibonacci no. 2
 LOOP:
-    addi $1, $1, 1              # counter++
+    addi x1, x1, 1              # counter++
     nop
     nop
-    beq $3, $1, DONE            # if counter == loop limit then done!
-    add $4, $4, $5
-    add $5, $5, $4
-    beq $0, $0, LOOP            # jump
+    beq x3, x1, DONE            # if counter == loop limit then done!
+    add x4, x4, x5
+    add x5, x5, x4
+    beq x0, x0, LOOP            # jump
 DONE:
-    sw $4, 6($0)
-    sw $5, 7($0)
+    sw x4, 6(x0)
+    sw x5, 7(x0)

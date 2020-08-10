@@ -1,11 +1,11 @@
-    addi $3, $0, 100
+    addi x3, x0, 100
     nop
     nop
 LOOP:
-    beq $3, $1, DONE            # if counter == loop limit then done!
-    addi $1, $1, 1              # counter++
-    sw $1, 0($1)
-    beq $0, $0, LOOP            # jump
+    beq x3, x1, DONE            # if counter == loop limit then done!
+    addi x1, x1, 4              # counter++
+    sw x1, 0(x1)
+    beq x0, x0, LOOP            # jump
 DONE:
     nop
     nop

@@ -1,5 +1,5 @@
-g_instruction_set = ['nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
-            'or', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu']
+g_instruction_set = ('nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
+            'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal')
 
 
 class BranchTypes:
@@ -56,6 +56,16 @@ class Instruction:
         imm = (self.word) & 0xfffff000
         return imm
 
+    def imm_uj(self):
+        imm_raw = self.word >> 12
+        bit_19 = (imm_raw >> 19) << 19
+        bits_18_to_11 = (imm_raw & 0xff) << 11
+        bit_10 = ((imm_raw >> 8) & 1) << 10
+        bits_9_to_0 = ((imm_raw >> 9) & 0x3ff)
+        imm = (bit_19 | bits_18_to_11 | bit_10 | bits_9_to_0)
+        imm = self._negative_fix(imm, 20)
+        return imm
+
     def nop(self):
         return 0x13
 
@@ -72,6 +82,7 @@ def disassemble(inst):
     LOAD = 0b0000011
     STORE = 0b0100011
     BRANCH = 0b1100011
+    JAL =  0b1101111
 
     dic = {
         LUI: "lui",
@@ -79,7 +90,8 @@ def disassemble(inst):
         STORE: "sw",
         BRANCH: "",
         ADDI: "addi",
-        R_FORMAT: ""
+        R_FORMAT: "",
+        JAL: "jal"
     }
 
     try:
@@ -90,7 +102,7 @@ def disassemble(inst):
     if instruction.is_nop():
         assembly_code = "nop"
     elif instruction.opcode() == LUI:
-        assembly_code = assembly_code + ", " + str(instruction.imm_u())
+        assembly_code = assembly_code + " x" + str(instruction.rd()) + ", " + str(instruction.imm_u() >> 12)
     elif instruction.opcode() == LOAD:
         if instruction.funct3() == 0b000:
             assembly_code = "lb"
@@ -98,13 +110,13 @@ def disassemble(inst):
             assembly_code = "lh"
         elif instruction.funct3() == 0b010:
             assembly_code = "lw"
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", " + str(instruction.imm_i()) + "($" + str(
+        assembly_code = assembly_code + " x" + str(instruction.rd()) + ", " + str(instruction.imm_i()) + "(x" + str(
             instruction.rs1()) + ")"
     elif instruction.opcode() == STORE:
-        assembly_code = assembly_code + " $" + str(instruction.rs2()) + ", " + str(instruction.imm_s()) + "($" + str(
+        assembly_code = assembly_code + " x" + str(instruction.rs2()) + ", " + str(instruction.imm_s()) + "(x" + str(
             instruction.rs1()) + ")"
     elif instruction.opcode() == ADDI:
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", " + str(
+        assembly_code = assembly_code + " x" + str(instruction.rd()) + ", x" + str(instruction.rs1()) + ", " + str(
             instruction.imm_i())
     elif instruction.opcode() == BRANCH:
         if instruction.funct3() == BranchTypes.BEQ:
@@ -119,8 +131,10 @@ def disassemble(inst):
             assembly_code = "bltu"
         elif instruction.funct3() == BranchTypes.BGEU:
             assembly_code = "bgeu"
-        assembly_code = assembly_code + " $" + str(instruction.rs1()) + ", $" + str(instruction.rs2()) + ", " + str(
+        assembly_code = assembly_code + " x" + str(instruction.rs1()) + ", x" + str(instruction.rs2()) + ", " + str(
             instruction.imm_sb())
+    elif instruction.opcode() == JAL:
+        assembly_code = assembly_code + " x" + str(instruction.rd()) + ", " + str(instruction.imm_uj())
     elif instruction.opcode() == R_FORMAT:
         alu_control = (instruction.funct7() & 0b100000) >> 2 | instruction.funct3()
         if alu_control == 0b0000:
@@ -131,11 +145,13 @@ def disassemble(inst):
             assembly_code = "and"
         elif alu_control == 0b0110:
             assembly_code = "or"
+        elif alu_control == 0b0100:
+            assembly_code = "xor"
         elif alu_control == 0b0010:
             assembly_code = "slt"
         elif alu_control == 0b0011:
             assembly_code = "sltu"
-        assembly_code = assembly_code + " $" + str(instruction.rd()) + ", $" + str(instruction.rs1()) + ", $" + str(
+        assembly_code = assembly_code + " x" + str(instruction.rd()) + ", x" + str(instruction.rs1()) + ", x" + str(
             instruction.rs2())
 
     return assembly_code

@@ -1,17 +1,14 @@
-addi $5,$0, 6	# Replace with N
-addi $1,$0,1 	#a1
-addi $2,$0,0 	#a0
-addi $3,$0,0 	#ans
-addi $4,$0,1 	#i
+    addi x5, x0, 10	# Replace with N
+    addi x1, x0, 1 	#a1
+    addi x2, x0, 0 	#a0
+    addi x3, x0, 0 	#ans
+    addi x4, x0, 1 	#i
 FOR:
-    add $3, $1, $2
-    add $2, $0, $1
-    add $1, $0, $3
-    addi $4, $4, 1
-    blt $4, $5, FOR
+    add x3, x1, x2
+    add x2, x0, x1
+    add x1, x0, x3
+    addi x4, x4, 1
+    blt x4, x5, FOR
 HALT:
-    addi $0,$0, 0
-    addi $0,$0, 0
-    addi $0,$0, 0
-    addi $0,$0, 0
-    jal $31,HALT
+    nop
+    nop

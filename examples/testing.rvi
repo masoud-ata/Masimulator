@@ -1,28 +1,14 @@
-    lw $1, $1, $2
-    addi $3, $0, 400
+    lui x1, 900000
+    add x1, x2, x1
+    addi x3, x0, 100
 LL:
-    addi $1, $1, 4
-    sw $1, 0($1)
-    addi $2, $2, 1
-    bne $2, $3, LL
+    sw x1, 0(x1)
+    sw x1, 4(x1)
+    sw x1, 8(x1)
+    sw x1, 12(x1)
+    lw x1, 12(x1)
+    lw x1, 12(x1)
+    addi x1, x1, 16
+    addi x2, x2, 4
+    bne x2, x3, LL
     nop
-    addi $1, $1, 1
-    addi $1, $0, 0              # loop counter
-    addi $2, $0, 1
-    addi $3, $0, 9              # loop limit
-    addi $4, $0, 1              # fibonacci no. 1
-    addi $5, $0, 1              # fibonacci no. 2
-LOOP:
-    addi $1, $1, 1              # counter++
-    nop
-    nop
-    beq $3, $1, DONE            # if counter == loop limit then done!
-    add $4, $4, $5
-    add $5, $5, $4
-    beq $0, $0, LOOP            # jump
-DONE:
-    sw $4, 8($0)
-    sw $5, 12($0)
-    lw $1, 128($0)
-    addi $1, $1, 1
-    addi $3, $0, 400

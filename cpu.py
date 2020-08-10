@@ -5,11 +5,20 @@ import copy
 
 ALU_AND = 0
 ALU_OR = 1
-ALU_ADD = 2
-ALU_SUB = 3
-ALU_SLT = 4
-ALU_SLTU = 5
-ALU_RIGHT = 6
+ALU_XOR = 2
+ALU_ADD = 3
+ALU_SUB = 4
+ALU_SLT = 5
+ALU_SLTU = 6
+ALU_RIGHT = 7
+
+LUI = 0b0110111
+R_FORMAT = 0b0110011
+ADDI = 0b0010011
+LOAD = 0b0000011
+STORE = 0b0100011
+BRANCH = 0b1100011
+JAL = 0b1101111
 
 
 class MemoryReadMode:
@@ -46,6 +55,7 @@ class IdSignals:
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
         self.control_is_branch = 0
+        self.control_is_jump = 0
         self.sign_extended_immediate = 0
         self.branch_address = 0
         self.control_branch_taken = 0
@@ -83,12 +93,14 @@ class Signals:
 class IfIdReg:
     def __init__(self):
         self.pc = 0
+        self.pc_plus_4 = 0
         self.instruction = 0
         self.nop_inserted = False
 
 
 class IdExReg:
     def __init__(self):
+        self.pc_plus_4 = 0
         self.control_alu_op = 0
         self.control_alu_src = 0
         self.control_mem_read = 0
@@ -96,6 +108,7 @@ class IdExReg:
         self.control_mem_write = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
+        self.control_is_jump = 0
         self.register_file_data1 = 0
         self.register_file_data2 = 0
         self.register_file_rs1 = 0
@@ -108,11 +121,13 @@ class IdExReg:
 
 class ExMemReg:
     def __init__(self):
+        self.pc_plus_4 = 0
         self.control_mem_read = 0
         self.control_mem_read_mode = 0
         self.control_mem_write = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
+        self.control_is_jump = 0
         self.alu_result = 0
         self.register_file_data2 = 0
         self.register_file_rd = 0
@@ -122,8 +137,10 @@ class ExMemReg:
 
 class MemWbReg:
     def __init__(self):
+        self.pc_plus_4 = 0
         self.control_reg_write = 0
         self.control_mem_to_reg = 0
+        self.control_is_jump = 0
         self.memory_data = 0
         self.alu_result = 0
         self.register_file_rd = 0
@@ -253,14 +270,21 @@ class CPU:
                 self.state.signals.mem_signals.mem_data = to_int32(halfword_sign_extended)
 
     def _calc_wb_signals(self):
-        self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.alu_result if self.state.pipe.mem_wb.control_mem_to_reg == 0 else self.state.pipe.mem_wb.memory_data
-        if self.state.pipe.mem_wb.control_reg_write:
+        if self.state.pipe.mem_wb.control_mem_to_reg == 1:
+            self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.memory_data
+        elif self.state.pipe.mem_wb.control_is_jump == 1:
+            self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.pc_plus_4
+        else:
+            self.state.signals.wb_signals.rf_write_data = self.state.pipe.mem_wb.alu_result
+        if self.state.pipe.mem_wb.control_reg_write and self.state.pipe.mem_wb.register_file_rd != 0:
             self.state.register_file[self.state.pipe.mem_wb.register_file_rd] = self.state.signals.wb_signals.rf_write_data
 
     def _id_imm_generation(self, inst):
         op_6_5 = inst.opcode() >> 5
-        if inst.opcode() == 0b0110111:
+        if inst.opcode() == LUI:
             self.state.signals.id_signals.sign_extended_immediate = inst.imm_u()
+        elif inst.opcode() == JAL:
+            self.state.signals.id_signals.sign_extended_immediate = inst.imm_uj()
         elif op_6_5 == 0b00:
             self.state.signals.id_signals.sign_extended_immediate = inst.imm_i()
         elif op_6_5 == 0b01:
@@ -281,14 +305,8 @@ class CPU:
         self.state.signals.id_signals.control_mem_read_mode = MemoryReadMode.WORD
         self.state.signals.id_signals.control_mem_to_reg = 0
         self.state.signals.id_signals.control_is_branch = 0
+        self.state.signals.id_signals.control_is_jump = 0
         self.state.hazard_detected = 0
-
-        LUI = 0b0110111
-        R_FORMAT = 0b0110011
-        ADDI = 0b0010011
-        LOAD = 0b0000011
-        STORE = 0b0100011
-        BRANCH = 0b1100011
 
         if self.hazard_detection_enabled == 1 and self.state.pipe.id_ex.control_mem_read == 1 and \
             (self.state.pipe.id_ex.register_file_rd == Instruction(self.state.pipe.if_id.instruction).rs1() or
@@ -303,6 +321,8 @@ class CPU:
                 self.state.signals.id_signals.control_alu_op = ALU_AND
             elif funct3 == 0b110 and funct7 == 0b0000000:
                 self.state.signals.id_signals.control_alu_op = ALU_OR
+            elif funct3 == 0b100 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_XOR
             elif funct3 == 0b010 and funct7 == 0b0000000:
                 self.state.signals.id_signals.control_alu_op = ALU_SLT
             elif funct3 == 0b011 and funct7 == 0b0000000:
@@ -327,6 +347,9 @@ class CPU:
             self.state.signals.id_signals.control_mem_write = 1
         elif opcode == BRANCH:
             self.state.signals.id_signals.control_is_branch = 1
+        elif opcode == JAL:
+            self.state.signals.id_signals.control_is_jump = 1
+            self.state.signals.id_signals.control_reg_write = 1
         elif opcode == LUI:
             self.state.signals.id_signals.control_alu_op = ALU_RIGHT
             self.state.signals.id_signals.control_alu_src = 1
@@ -341,7 +364,9 @@ class CPU:
         self.state.signals.id_signals.greater_than_equal_unsigned_flag = (to_unsigned(self.state.signals.id_signals.rf_data1, 32) >= to_unsigned(self.state.signals.id_signals.rf_data2, 32))
         branch_type = Instruction(self.state.pipe.if_id.instruction).funct3()
         self.state.signals.id_signals.control_branch_taken = 0
-        if self.state.signals.id_signals.control_is_branch:
+        if self.state.signals.id_signals.control_is_jump:
+            self.state.signals.id_signals.control_branch_taken = 1
+        elif self.state.signals.id_signals.control_is_branch:
             if branch_type == BranchTypes.BEQ and self.state.signals.id_signals.zero_flag:
                 self.state.signals.id_signals.control_branch_taken = 1
             elif branch_type == BranchTypes.BNE and not self.state.signals.id_signals.zero_flag:
@@ -361,6 +386,8 @@ class CPU:
             ex_alu_result = to_int32(left & right)
         elif control == ALU_OR:
             ex_alu_result = to_int32(left | right)
+        elif control == ALU_XOR:
+            ex_alu_result = to_int32(left ^ right)
         elif control == ALU_ADD:
             ex_alu_result = to_int32(left + right)
         elif control == ALU_SUB:
@@ -396,6 +423,7 @@ class CPU:
 
     def _register_if_id(self):
         if self.state.hazard_detected == 0:
+            self.state.pipe.if_id.pc_plus_4 = self.state.signals.if_signals.pc_plus_4
             self.state.pipe.if_id.pc = self.state.signals.if_signals.pc
             flush_if_inst = self.delayed_branches_enabled == 0 and self.state.signals.id_signals.control_branch_taken == 1
             if flush_if_inst:
@@ -408,6 +436,7 @@ class CPU:
 
     def _register_id_ex(self):
         id_ex = self.state.pipe.id_ex
+        id_ex.pc_plus_4 = self.state.pipe.if_id.pc_plus_4
         id_signals = self.state.signals.id_signals
         id_ex.register_file_data1 = id_signals.rf_data1
         id_ex.register_file_data2 = id_signals.rf_data2
@@ -421,6 +450,7 @@ class CPU:
         id_ex.control_reg_write = id_signals.control_reg_write
         id_ex.control_mem_read_mode = id_signals.control_mem_read_mode
         id_ex.control_mem_to_reg = id_signals.control_mem_to_reg
+        id_ex.control_is_jump = id_signals.control_is_jump
         id_ex.sign_extended_immediate = id_signals.sign_extended_immediate
         if self.state.hazard_detected == 1:
             id_ex.instruction = Instruction(0).nop()
@@ -432,11 +462,13 @@ class CPU:
     def _register_ex_mem(self):
         ex_mem = self.state.pipe.ex_mem
         id_ex = self.state.pipe.id_ex
+        ex_mem.pc_plus_4 = id_ex.pc_plus_4
         ex_mem.control_mem_read = id_ex.control_mem_read
         ex_mem.control_mem_read_mode = id_ex.control_mem_read_mode
         ex_mem.control_mem_write = id_ex.control_mem_write
         ex_mem.control_reg_write = id_ex.control_reg_write
         ex_mem.control_mem_to_reg = id_ex.control_mem_to_reg
+        ex_mem.control_is_jump = id_ex.control_is_jump
         ex_mem.alu_result = self.state.signals.ex_signals.alu_result
         ex_mem.register_file_data2 =self.state.signals.ex_signals.right_forward_out
         ex_mem.register_file_rd = id_ex.register_file_rd
@@ -446,13 +478,12 @@ class CPU:
     def _register_mem_wb(self):
         mem_wb = self.state.pipe.mem_wb
         ex_mem = self.state.pipe.ex_mem
+        mem_wb.pc_plus_4 = ex_mem.pc_plus_4
         mem_wb.control_reg_write = ex_mem.control_reg_write
         mem_wb.control_mem_to_reg = ex_mem.control_mem_to_reg
+        mem_wb.control_is_jump = ex_mem.control_is_jump
         mem_wb.memory_data = self.state.signals.mem_signals.mem_data
         mem_wb.alu_result = ex_mem.alu_result
         mem_wb.register_file_rd = ex_mem.register_file_rd
         mem_wb.instruction = ex_mem.instruction
         mem_wb.nop_inserted = ex_mem.nop_inserted
-
-
-print(g_memory[0])

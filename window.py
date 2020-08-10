@@ -10,6 +10,7 @@ from tkinter import font
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import io
+from functools import partial
 
 
 class Screen:
@@ -23,9 +24,12 @@ class Screen:
         self.pipeline_window = ttk.Frame(nb)
         self.editor_window = ttk.Frame(nb)
 
-        self.assembly_file_name = 'examples/testing.rvi'
-
+        self.assembly_file_name = 'examples/default.rvi'
         self._editor_setup()
+
+        self.recent_file_list_menu = Menu()
+        self.recent_file_list = set()
+        self.setup_recent_file_list()
 
         nb.add(self.pipeline_window, text='Pipeline')
         nb.add(self.editor_window, text='Editor')
@@ -58,18 +62,29 @@ class Screen:
         self.reset_callback()
         self.main_window.bind('<Key>', lambda a: self._key_press_callback(a))
         nb.bind("<<NotebookTabChanged>>", self.on_tab_selected)
+
+        self._assemble_editor_contetnts()
+
         mainloop()
 
     def _editor_setup(self):
         self.assembly_file_name_title = StringVar()
         self.assembly_file_name_title.set(self.assembly_file_name)
-        l = Label(self.editor_window, textvariable=self.assembly_file_name_title)
-        l.pack()
+        title_pane = ttk.Panedwindow(self.editor_window, width=500, height=30)
+        l = Label(title_pane, textvariable=self.assembly_file_name_title)
+        l.grid(row=0, column=0, sticky=W)
+        self.assembly_status = Label(title_pane, text="    ", background="green")
+        self.assembly_status.grid(row=0, column=1, sticky=W, padx=10)
+        title_pane.pack()
         buttons_pane = ttk.Panedwindow(self.editor_window, width=500, height=30)
-        b = Button(buttons_pane, text="Save & Assemble", command=self._save_and_assemble)
+        b = Button(buttons_pane, text="Save", command=self._save_assembly_file)
         b.grid(row=0, column=0, sticky=W)
-        b = Button(buttons_pane, text="Open & Assemble", command=self._open_and_assemble_file)
+        b = Button(buttons_pane, text="Save As", command=self._save_as_file_dialog)
         b.grid(row=0, column=1, sticky=W)
+        b = Button(buttons_pane, text="Open", command=self._open_and_assemble_dialog)
+        b.grid(row=0, column=2, sticky=W)
+        b = Button(buttons_pane, text="Assemble", command=self._assemble_editor_contetnts)
+        b.grid(row=0, column=3, sticky=W)
         buttons_pane.pack()
         self.editor_text = ScrolledText(self.editor_window, font=("Consolas", 17))
         self.editor_text.pack(expand=1, fill="both")
@@ -82,10 +97,33 @@ class Screen:
 
     def _editor_any_key_pressed(self, arg):
         self._highlight_syntax()
+        if arg.char != "":
+            self.assembly_status.config(bg="black")
 
     def _editor_tab_key_pressed(self, arg):
         self.editor_text.insert(INSERT, " " * 4)
         return 'break'
+
+    def setup_recent_file_list(self):
+        try:
+            with open("recent.txt", "r") as f:
+                self.recent_file_list = set(f.read().splitlines())
+        except:
+            pass
+
+    def update_recent_file_list(self):
+        for recent in self.recent_file_list:
+            self.recent_file_list_menu.delete(0)
+        for recent in self.recent_file_list:
+            self.recent_file_list_menu.add_command(label=recent, command=partial(self._open_and_assemble_file, recent))
+
+    def add_to_recent_file_list(self, filename):
+        if len(self.recent_file_list) == 10:
+            self.recent_file_list.pop()
+        self.recent_file_list.add(filename)
+        with open("recent.txt", "w") as f:
+            f.writelines("%s\n" % recent_file for recent_file in self.recent_file_list)
+        self.update_recent_file_list()
 
     def on_tab_selected(self, event):
         pass
@@ -318,19 +356,24 @@ class Screen:
         menu = Menu(master)
         master.config(menu=menu)
 
-        file_menu = Menu(menu)
+        file_menu = Menu(menu, tearoff=False)
         menu.add_cascade(label='File', menu=file_menu)
-        file_menu.add_command(label='Open & Assemble ...', command=self._open_and_assemble_file)
-        file_menu.add_command(label='Save & Assemble', command=self._save_and_assemble)
+        file_menu.add_command(label='Open & Assemble ...', command=self._open_and_assemble_dialog)
+        self.recent_file_list_menu = Menu(file_menu, tearoff=False)
+        for recent in self.recent_file_list:
+            self.recent_file_list_menu.add_command(label=recent, command=partial(self._open_and_assemble_file, recent))
+        file_menu.add_cascade(label="Open Recent", menu=self.recent_file_list_menu)
         file_menu.add_command(label='Save       Ctrl+S', command=self._save_assembly_file)
+        file_menu.add_command(label='Save As ...', command=self._save_as_file_dialog)
+        file_menu.add_command(label='Assemble', command=self._assemble_editor_contetnts)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=master.quit)
 
-        edit_menu = Menu(menu)
+        edit_menu = Menu(menu, tearoff=False)
         menu.add_cascade(label='Edit', menu=edit_menu)
         edit_menu.add_command(label='Memory', command=self._setup_memory_window)
 
-        help_menu = Menu(menu)
+        help_menu = Menu(menu, tearoff=False)
         menu.add_cascade(label='Help', menu=help_menu)
         help_menu.add_command(label='About', command=self._about_window)
 
@@ -365,32 +408,49 @@ class Screen:
                 self.editor_text.tag_add("comment", str(line_number + 1) + "." + str(start_pos), str(line_number + 1) + "." + str(end_pos))
                 self.editor_text.tag_config("comment", foreground="green")
 
-    def _save_and_assemble(self, arg=0):
-        self._save_assembly_file(self.assembly_file_name)
-        self._assemble_file(self.assembly_file_name)
-        self._highlight_syntax()
-
     def _save_assembly_file(self, arg=0):
         with open(self.assembly_file_name, "w") as f:
             f.write(self.editor_text.get("1.0", END)[:-1])
 
-    def _assemble_file(self, filename):
+    def _save_as_file_dialog(self):
+        filename = filedialog.asksaveasfilename(initialdir=".", title="Select file",filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
         if filename != "":
-            assemble(filename)
             self.assembly_file_name = filename
             self.assembly_file_name_title.set(filename)
+            with open(self.assembly_file_name, "w") as f:
+                f.write(self.editor_text.get("1.0", END)[:-1])
+
+    def _open_and_assemble_file(self, filename):
+        self.assembly_file_name = filename
+        self.assembly_file_name_title.set(filename)
+        self._assemble_file(filename)
+        self.editor_text.delete('1.0', END)
+        self.editor_text.edit_reset()
+        self.editor_text.insert('end', open(filename, 'r').read())
+        self._highlight_syntax()
+
+    def _open_and_assemble_dialog(self):
+        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+        if filename != "":
+            self._open_and_assemble_file(filename)
+            self.add_to_recent_file_list(filename)
+
+    def _assemble_editor_contetnts(self):
+        temp_filename = "examples/tmp2.rvi"
+        with open(temp_filename, "w") as f:
+            f.write(self.editor_text.get("1.0", END)[:-1])
+        self._assemble_file(temp_filename)
+
+    def _assemble_file(self, filename):
+        try:
+            assemble(filename)
             self.risc_v.read_program_memory()
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
                 self._setup_program_mem_box(self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
-            self.editor_text.delete('1.0', END)
-            self.editor_text.edit_reset()
-            self.editor_text.insert('end', open(self.assembly_file_name, 'r').read())
-            self._highlight_syntax()
-
-    def _open_and_assemble_file(self):
-        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
-        self._assemble_file(filename)
+            self.assembly_status.config(bg="green")
+        except Exception:
+            self.assembly_status.config(bg="red")
 
     def _setup_check_buttons(self):
         check_buttons_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)

@@ -7,12 +7,6 @@ MEMORY_SIZE = 4096
 g_memory = [0] * MEMORY_SIZE
 
 
-class OldBlock:
-    data = []
-    address = 0
-    was_dirty = False
-
-
 class MemorySettings:
     num_sets = 1
     num_blocks_per_set = 1
@@ -34,6 +28,12 @@ class MemoryHistory:
 
 
 class Cache:
+    class OldBlock:
+        def __init__(self):
+            self.data = []
+            self.address = 0
+            self.was_dirty = False
+
     def __init__(self, sets=1, blocks_per_set=1, words_per_block=1):
         self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
         self.tags = np.zeros((sets, blocks_per_set), dtype=np.int)
@@ -51,6 +51,7 @@ class Cache:
         self.book_keeping_modified_set = 0
         self.book_keeping_hits = 0
         self.book_keeping_misses = 0
+        self.write_back_buffer = Cache.OldBlock()
 
     def resize(self, sets=1, blocks_per_set=1, words_per_block=1):
         self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
@@ -114,12 +115,11 @@ class Cache:
         set = tag & (self.size["sets"] - 1)
         replaced_block = self._find_a_replacement_block(set)
 
-        OldBlock.was_dirty = self.dirty_bits[set][replaced_block] == 1
-        block_data = []
+        self.write_back_buffer.was_dirty = self.dirty_bits[set][replaced_block] == 1
+        self.write_back_buffer.data = []
         for word in range(MemorySettings.num_words_per_block):
-            block_data.append(int(self.contents[set, replaced_block, word]))
-        OldBlock.data = block_data
-        OldBlock.address = int(self.tags[set, replaced_block]) * MemorySettings.num_words_per_block
+            self.write_back_buffer.data.append(int(self.contents[set, replaced_block, word]))
+        self.write_back_buffer.address = int(self.tags[set, replaced_block]) * MemorySettings.num_words_per_block
 
         for word in range(MemorySettings.num_words_per_block):
             self.contents[set, replaced_block, word] = data[word]
@@ -251,12 +251,12 @@ class Memory:
                 self.cache.place(self.block_address, block_data)
             else:
                 self.cache.replace(self.block_address, block_data)
-                if OldBlock.was_dirty:
+                if self.cache.write_back_buffer.was_dirty:
                     self.wait_cycles = self.total_memory_penalty_cycles
                     self.processing = True
                     self.data_ready = False
                     self.is_writing_to_mem = True
-                    OldBlock.was_dirty = False
+                    self.cache.write_back_buffer.was_dirty = False
 
     def _handle_write(self):
         if not MemorySettings.cache_active:
@@ -276,12 +276,12 @@ class Memory:
             else:
                 self.cache.replace(self.block_address, block_data)
                 self.cache.modify(self.block_address, block_data, word_index)
-                if OldBlock.was_dirty:
+                if self.cache.write_back_buffer.was_dirty:
                     self.wait_cycles = self.total_memory_penalty_cycles
                     self.processing = True
                     self.data_ready = False
                     self.is_writing_to_mem = True
-                    OldBlock.was_dirty = False
+                    self.cache.write_back_buffer.was_dirty = False
 
     def _handle_read_write_in_cache(self):
         self.processing = False
@@ -300,11 +300,11 @@ class Memory:
             self.wait_cycles = self.total_memory_penalty_cycles
             self.processing = False
             self.data_ready = True
-            self.history.block_address = OldBlock.address
+            self.history.block_address = self.cache.write_back_buffer.address
             for word in range(MemorySettings.num_words_per_block):
-                self.history.old_block.append(g_memory[OldBlock.address + word])
-                self.history.new_block.append(OldBlock.data[word])
-                g_memory[OldBlock.address + word] = OldBlock.data[word]
+                self.history.old_block.append(g_memory[self.cache.write_back_buffer.address + word])
+                self.history.new_block.append(self.cache.write_back_buffer.data[word])
+                g_memory[self.cache.write_back_buffer.address + word] = self.cache.write_back_buffer.data[word]
             self.is_writing_to_mem = False
         else:
             self.wait_cycles = self.wait_cycles - 1
