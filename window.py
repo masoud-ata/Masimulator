@@ -628,7 +628,7 @@ class Screen:
     def refresh_register_file_box(self):
         show_in_hex = self.show_rf_in_hex.get()
         for i, rf_entry in enumerate(self.register_file_entries):
-            value_before = to_int32(int(self.register_file_entries[i].get(), 16))
+            value_before = to_int32(int(rf_entry.get(), 16)) if show_in_hex else to_int32(int(rf_entry.get()))
             value_now = to_int32(self.risc_v.state.register_file[i])
             rf_entry.delete(0, 'end')
             if show_in_hex:

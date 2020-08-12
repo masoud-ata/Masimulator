@@ -1,14 +1,12 @@
-    addi x5, x0, 10	# Replace with N
-    addi x1, x0, 1 	#a1
-    addi x2, x0, 0 	#a0
-    addi x3, x0, 0 	#ans
-    addi x4, x0, 1 	#i
-FOR:
-    add x3, x1, x2
-    add x2, x0, x1
-    add x1, x0, x3
-    addi x4, x4, 1
-    blt x4, x5, FOR
-HALT:
-    nop
+    addi x1, x0, 0    # fib(0)
+    addi x2, x0, 1    # fib(1)
+    addi x3, x0, 0    # fib(N) will be put here
+    addi x4, x0, 0    # loop counter
+    addi x5, x0, 6    # loop limit N, we want fib(N)
+LOOP:
+    addi x4, x4, 1    # counter += 1
+    add x3, x1, x2    # calculate a new fib number   
+    add x2, x0, x1    # sawp
+    add x1, x0, x3    
+    blt x4, x5, LOOP
     nop

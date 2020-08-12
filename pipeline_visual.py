@@ -175,7 +175,7 @@ class PipelineGraphics:
         render = ImageTk.PhotoImage(load)
         self.hazard_detected_image = Label(self.pipe_pane, image=render)
         self.hazard_detected_image.image = render
-        self.hazard_detected_image_pos = 450, 120
+        self.hazard_detected_image_pos = 550, 40
         self.hazard_detected_image.place(x=self.hazard_detected_image_pos[0], y=self.hazard_detected_image_pos[1])
         self.hazard_detected_image.place_forget()
 

@@ -57,12 +57,12 @@ def assemble(assembly_file):
     args = preset_args(assembly_file)
     assembly_file_text = read_assembly_file(assembly_file)
 
+    assembly_file_text = replace_hex_with_decimal(assembly_file_text)
     assembly_file_text = replace_nop_with_addi(assembly_file_text)
     assembly_file_text = replace_ret_with_jalr(assembly_file_text)
     assembly_file_text = replace_nice_looking_stores(assembly_file_text)
     assembly_file_text = replace_nice_looking_loads(assembly_file_text)
     assembly_file_text = replace_nice_looking_registers(assembly_file_text)
-    assembly_file_text = replace_hex_with_decimal(assembly_file_text)
     assembly_file_text = ensure_newline_at_end(assembly_file_text)
 
     temp_assembly_file = "examples/tmp.rvi"
@@ -81,12 +81,12 @@ def write_assembly_file(assembly_file, assembly_file_text):
 
 
 def replace_nop_with_addi(assembly_file_text):
-    assembly_file_text = assembly_file_text.replace('nop', 'addi $0, $0, 0')
+    assembly_file_text = assembly_file_text.replace('nop', 'addi x0, x0, 0')
     return assembly_file_text
 
 
 def replace_ret_with_jalr(assembly_file_text):
-    assembly_file_text = assembly_file_text.replace('ret', 'jalr $0, $1, 0')
+    assembly_file_text = assembly_file_text.replace('ret', 'jalr x0, x1, 0')
     return assembly_file_text
 
 
@@ -94,16 +94,14 @@ def replace_nice_looking_stores(assembly_file_text):
     lines = io.StringIO(assembly_file_text).readlines()
     lines_updated = []
     for l in lines:
-        sw_pos = l.find('sw')
-        if sw_pos >= 0:
-            rs1 = 0
-            rs2 = 2
-            imm = 1
-            numbers = re.findall("[-\d]+", l)
-            l = " " * sw_pos + "sw " + "$" + str(numbers[rs2]) + ", " + "$" + str(numbers[rs1]) + ", " + str(
-                numbers[imm]) + "\n"
+        tokens = re.findall(r"[\w']+", l)
+        if tokens and tokens[0] == "sw":
+            inst = "sw"
+            rs1 = tokens[1]
+            rs2 = tokens[3]
+            imm = tokens[2]
+            l = inst + " " + rs2 + ", " + rs1 + ", " + imm + "\n"
         lines_updated.append(l)
-
     return ''.join(lines_updated)
 
 
@@ -112,18 +110,14 @@ def replace_nice_looking_loads(assembly_file_text):
     lines_updated = []
     load_types = ['lb', 'lh', 'lw']
     for l in lines:
-        for i, load_type in enumerate(load_types):
-            load_pos = l.find(load_type)
-            if load_pos >= 0:
-                rd = 0
-                rs1 = 2
-                imm = 1
-                numbers = re.findall("[-\d]+", l)
-                l = " " * load_pos + load_types[i] + " $" + str(numbers[rd]) + ", " + "$" + str(
-                    numbers[rs1]) + ", " + str(numbers[imm]) + "\n"
-                continue
+        tokens = re.findall(r"[\w']+", l)
+        if tokens and tokens[0] in load_types:
+            inst = tokens[0]
+            rs1 = tokens[1]
+            rs2 = tokens[3]
+            imm = tokens[2]
+            l = inst + " " + rs1 + ", " + rs2 + ", " + imm + "\n"
         lines_updated.append(l)
-
     return ''.join(lines_updated)
 
 
