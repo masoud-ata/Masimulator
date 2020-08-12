@@ -429,7 +429,7 @@ def encode_offset(ltokens, address, target):
             # Warnings make sense.
             cp.cprint_fail("Internal error:" +
                            str(tokens['lineno']) + ":" + msg)
-            exit(1)
+            raise Exception("")
         result = {
             'opcode': ltokens['opcode'],
             'rd': ltokens['rd'],
@@ -441,7 +441,7 @@ def encode_offset(ltokens, address, target):
         ret, imm, msg = get_imm_SB(offset, lineno)
         if not ret:
             cp.cprint_fail("Internal error:" + str(lineno) + ":" + msg)
-            exit(1)
+            raise Exception("")
         result = {
             'opcode': ltokens['opcode'],
             'rs1': ltokens['rs1'],
@@ -501,7 +501,7 @@ def parse_pass_one(fin, args):
             cp.cprint_fail("Error: " + str(result['tokens']['lineno']) +
                            " : Redeclaration of label '" +
                            str(result['tokens']) + "'.")
-            exit(1)
+            raise Exception("")
     # Restore warning state
     cp.warn = prev_warn
     cp.warn32 = prev_warn32
@@ -531,7 +531,7 @@ def parse_pass_two(fin, fout, symbols_table, args):
                 cp.cprint_fail("Error: " + str(result['lineno']) +
                                " : Label used but never defined '" +
                                str(result['label']) + "'.")
-                exit(1)
+                raise Exception("")
             result = encode_offset(
                 result, address, symbols_table[result['label']])
         if result:
@@ -584,14 +584,15 @@ def parse_input(infile, **kwargs):
 
 def main():
     if len(sys.argv) <= 1:
-        exit("Error: No file specified")
+        cp.cprint_fail("Error: No file specified")
+        raise Exception("")
     fin = None
     try:
         fin = open(sys.argv[1], 'r')
     except IOError:
         cp.cprint_fail("File does not seem to exist or" +
                        " you do not have the required permissions.")
-        return 1
+        raise Exception("")
 
     for line in fin:
         result = parser.parse(line)

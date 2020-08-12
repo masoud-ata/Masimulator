@@ -73,8 +73,8 @@ class Screen:
         title_pane = ttk.Panedwindow(self.editor_window, width=500, height=30)
         l = Label(title_pane, textvariable=self.assembly_file_name_title)
         l.grid(row=0, column=0, sticky=W)
-        self.assembly_status = Label(title_pane, text="    ", background="green")
-        self.assembly_status.grid(row=0, column=1, sticky=W, padx=10)
+        self.assembly_status_icon = Label(title_pane, text="    ", background="green")
+        self.assembly_status_icon.grid(row=0, column=1, sticky=W, padx=10)
         title_pane.pack()
         buttons_pane = ttk.Panedwindow(self.editor_window, width=500, height=30)
         b = Button(buttons_pane, text="Save", command=self._save_assembly_file)
@@ -86,6 +86,7 @@ class Screen:
         b = Button(buttons_pane, text="Assemble", command=self._assemble_editor_contetnts)
         b.grid(row=0, column=3, sticky=W)
         buttons_pane.pack()
+
         self.editor_text = ScrolledText(self.editor_window, font=("Consolas", 17))
         self.editor_text.pack(expand=1, fill="both")
         self.editor_text.insert('end', open(self.assembly_file_name,'r').read())
@@ -95,10 +96,16 @@ class Screen:
         self.editor_text.pack()
         self._highlight_syntax()
 
+        self.assembly_status_bar_text = StringVar()
+        status_bar_pane = ttk.Panedwindow(self.editor_window, width=500, height=200)
+        self.assembly_status_bar_label = Label(status_bar_pane, textvariable=self.assembly_status_bar_text, font=("Consolas", 15))
+        self.assembly_status_bar_label.grid(row=0, column=0, sticky=W)
+        status_bar_pane.pack()
+
     def _editor_any_key_pressed(self, arg):
         self._highlight_syntax()
         if arg.char != "":
-            self.assembly_status.config(bg="black")
+            self.assembly_status_icon.config(bg="black")
 
     def _editor_tab_key_pressed(self, arg):
         self.editor_text.insert(INSERT, " " * 4)
@@ -448,9 +455,13 @@ class Screen:
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
                 self._setup_program_mem_box(self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
-            self.assembly_status.config(bg="green")
+            self.assembly_status_icon.config(bg="green")
         except Exception:
-            self.assembly_status.config(bg="red")
+            self.assembly_status_icon.config(bg="red")
+        from assembler.lib.cprint import cprint as cp
+        color, text = cp.consume_message()
+        self.assembly_status_bar_label.config(fg=color)
+        self.assembly_status_bar_text.set(text)
 
     def _setup_check_buttons(self):
         check_buttons_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)

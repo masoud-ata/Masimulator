@@ -1,45 +1,44 @@
-#
-# @author:Don Dennis
-# push_pop_halt_test.rvi
-#
-# Testing functions PUSH, POP
-# and HALT. There are used as
-# pseudo instructions in other programs
+# x30: Stack Pointer
+# x29: Return value 
+# x1: return address
+# x4: return value
+# x3: temp
 
-## Convention
-# $31: Return Address
-# $30: Stack Pointer
-# $29: Return value 
-# $1:arg1
-# $2:arg2
-# $3:temp
+START:	
+    addi x30, x0, 60
+    addi x3, x0, 1
+    jal x1, PUSH
+    addi x3, x3, 3
+    jal x1, PUSH
+    addi x3, x3, 3
+    jal x1, PUSH
+    addi x3, x3, 3
+    jal x1, PUSH
+    jal x1, POP
+    jal x1, POP
+    jal x1, POP
+    jal x1, POP
+    nop
+    nop
+    nop
+    jal x0, END
 
-_START:
-	addi $3,$0,2047
-	addi $30,$0,20
-	jal  $31,PUSH
-	addi $3, $0, 1
-	jal $31,POP
-HALT:
-	jal $31, HALT
-
-# Increments stack pointer and
-# pushes the value in $3 to stack
+# Increments stack pointer & pushes the value in x3 to stack
 PUSH:
-	addi $30,$30,4
-	sw   $30,$3, 0
-	jalr $0,$31,0
-# Pops the value from stack to $3
-# and decrements stack pointer
-POP:
-	lw $4, $30,0
-	addi $30,$30,-4
-	jalr $0,$31,0	
+    addi x30, x30, 4
+    sw x3, 0(x30)
+    ret
 
-SWAP:
-	add $3,$0,$1
-	add $1,$0,$2
-	add $2,$0,$3
-	jalr $0,$31,0
+# Pops the value from stack to x3 & decrements stack pointer
+POP:
+    lw x4, 0(x30)
+    addi x30, x30, -4
+    ret
+
+END:
+    nop
+    nop
+
 
 	
+

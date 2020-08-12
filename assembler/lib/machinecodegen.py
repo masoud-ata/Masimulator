@@ -53,7 +53,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: LUI: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -82,7 +82,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: AUIPC: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -112,7 +112,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: AUIPC: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -149,7 +149,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: JALR: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rs1 + funct + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -192,7 +192,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: BRANCH: could not parse" +
                            " tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm_12_10_5 + bin_rs2 + bin_rs1 + funct3
         bin_str += imm_4_1_11 + bin_opcode
@@ -237,7 +237,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: LOAD: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rs1 + funct3 + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -280,7 +280,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: STORE: could not parse" +
                            " tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm_11_5 + bin_rs2 + bin_rs1 + funct3 + imm_4_0 + bin_opcode
         assert(len(bin_str) == 32)
@@ -329,7 +329,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: ARITHI: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = imm + bin_rs1 + funct3 + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
@@ -383,7 +383,7 @@ class MachineCodeGenerator:
         except:
             cp.cprint_fail("Internal Error: ARITH: could not parse" +
                            "tokens in " + str(tokens['lineno']))
-            exit()
+            raise Exception("")
 
         bin_str = funct7 + bin_rs2 + bin_rs1 + funct3 + bin_rd + bin_opcode
         assert(len(bin_str) == 32)
