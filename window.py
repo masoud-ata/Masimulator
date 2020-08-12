@@ -28,7 +28,7 @@ class Screen:
         self._editor_setup()
 
         self.recent_file_list_menu = Menu()
-        self.recent_file_list = set()
+        self.recent_file_list = list()
         self.setup_recent_file_list()
 
         nb.add(self.pipeline_window, text='Pipeline')
@@ -114,7 +114,7 @@ class Screen:
     def setup_recent_file_list(self):
         try:
             with open("recent.txt", "r") as f:
-                self.recent_file_list = set(f.read().splitlines())
+                self.recent_file_list = list(f.read().splitlines())
         except:
             pass
 
@@ -125,9 +125,11 @@ class Screen:
             self.recent_file_list_menu.add_command(label=recent, command=partial(self._open_and_assemble_file, recent))
 
     def add_to_recent_file_list(self, filename):
-        if len(self.recent_file_list) == 10:
+        if filename in self.recent_file_list:
+            self.recent_file_list.remove(filename)
+        self.recent_file_list.insert(0, filename)
+        if len(self.recent_file_list) >= 10:
             self.recent_file_list.pop()
-        self.recent_file_list.add(filename)
         with open("recent.txt", "w") as f:
             f.writelines("%s\n" % recent_file for recent_file in self.recent_file_list)
         self.update_recent_file_list()
@@ -435,12 +437,12 @@ class Screen:
         self.editor_text.edit_reset()
         self.editor_text.insert('end', open(filename, 'r').read())
         self._highlight_syntax()
+        self.add_to_recent_file_list(filename)
 
     def _open_and_assemble_dialog(self):
         filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
         if filename != "":
             self._open_and_assemble_file(filename)
-            self.add_to_recent_file_list(filename)
 
     def _assemble_editor_contetnts(self):
         temp_filename = "examples/tmp2.rvi"
