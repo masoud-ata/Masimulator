@@ -131,6 +131,7 @@ def replace_nice_looking_registers(assembly_file_text):
 
 def replace_hex_with_decimal(assembly_file_text):
     hex_numbers = re.findall(r'\b0x\w+', assembly_file_text)
+    hex_numbers.sort(reverse=True, key=len)
     for hex_num in hex_numbers:
         assembly_file_text = assembly_file_text.replace(hex_num, str(int(hex_num, 16)))
     return assembly_file_text

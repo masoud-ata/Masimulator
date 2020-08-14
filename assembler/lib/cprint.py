@@ -19,6 +19,7 @@ class CPrint:
     no_color = False
     warn = True
     fail = True
+    failed = False
 
     message = ""
     colors = {
@@ -32,6 +33,7 @@ class CPrint:
     color = colors[BLACK]
 
     def consume_message(self):
+        self.failed = False
         message = CPrint.message
         color = CPrint.color
         CPrint.message = ""
@@ -63,12 +65,13 @@ class CPrint:
         CPrint.color = CPrint.colors[self.OKBLUE]
 
     def cprint_warn(self, msg):
-        if self.warn:
+        if not self.failed and self.warn:
             self.cprint_cus(self.WARNING, msg)
             CPrint.color = CPrint.colors[self.WARNING]
 
     def cprint_fail(self, msg):
         if self.fail:
+            self.failed = True
             self.cprint_cus(self.BOLD + self.FAIL, msg)
             CPrint.color = CPrint.colors[self.FAIL]
 

@@ -1,16 +1,16 @@
 from tkinter import *
 from tkinter import ttk
-from disassembler import *
 from cpu import *
 from pipeline_visual import PipelineGraphics
-from tkinter import filedialog
-from assembler.rvi import assemble
-import webbrowser
-from tkinter import font
 import tkinter as tk
-from tkinter.scrolledtext import ScrolledText
+from tkinter import filedialog, font
+from assembler.rvi import assemble
+from assembler.lib.cprint import cprint as cp
+from disassembler import *
+import webbrowser
 import io
 from functools import partial
+from scrolled_lined_text import ScrolledLinedText
 
 
 class Screen:
@@ -87,13 +87,14 @@ class Screen:
         b.grid(row=0, column=3, sticky=W)
         buttons_pane.pack()
 
-        self.editor_text = ScrolledText(self.editor_window, font=("Consolas", 17))
-        self.editor_text.pack(expand=1, fill="both")
-        self.editor_text.insert('end', open(self.assembly_file_name,'r').read())
+        e = ScrolledLinedText(self.editor_window)
+        e.pack(side="top", fill="both", expand=True)
+        self.editor_text = e.text
+        self.editor_text.configure(font=("Consolas", 17))
         self.editor_text.bind("<Tab>", self._editor_tab_key_pressed)
         self.editor_text.bind("<Control-s>", self._save_assembly_file)
         self.editor_text.bind("<KeyRelease>", self._editor_any_key_pressed)
-        self.editor_text.pack()
+        self.editor_text.insert('end', open(self.assembly_file_name, 'r').read())
         self._highlight_syntax()
 
         self.assembly_status_bar_text = StringVar()
@@ -457,10 +458,9 @@ class Screen:
             [self.program_memory_box, self.program_memory_address_box, self.program_mem_scrollbar] = \
                 self._setup_program_mem_box(self.risc_v.memory, self.program_mem_yview, self.program_mem_yview_tie)
             self.reset_callback()
-            self.assembly_status_icon.config(bg="green")
+            self.assembly_status_icon.config(bg="red") if cp.failed else self.assembly_status_icon.config(bg="green")
         except Exception:
             self.assembly_status_icon.config(bg="red")
-        from assembler.lib.cprint import cprint as cp
         color, text = cp.consume_message()
         self.assembly_status_bar_label.config(fg=color)
         self.assembly_status_bar_text.set(text)
@@ -498,10 +498,10 @@ class Screen:
         entries = []
         for i in range(0, 32):
             entries.append(Entry(rf_pane, font=("Courier 10"), width=12))
-            entries[i].grid(row=int(1 + i % 16), column=1 + 2 * int(i / 16), sticky=W)
+            entries[i].grid(row=int(1 + i % 16), column=1 + 2 * (i // 16), sticky=W)
             entries[i].insert(0, 0)
             l = Label(rf_pane, text="x" + str(i))
-            l.grid(row=int(1 + i % 16), column=2 * int(i / 16), sticky=W)
+            l.grid(row=int(1 + i % 16), column=2 * (i // 16), sticky=W)
         return entries
 
     def _setup_data_mem_box(self, data_memory, data_mem_yview, data_mem_yview_tie):
@@ -689,7 +689,7 @@ class Screen:
         for tag in self.program_memory_box.tag_names():
             self.program_memory_box.tag_delete(tag)
 
-        pc = int(self.risc_v.state.signals.if_signals.pc / 4)
+        pc = self.risc_v.state.signals.if_signals.pc // 4
         value = disassemble(self.risc_v.memory[pc])
         row = pc + 1
         self.program_memory_box.tag_add("here", str(row) + ".0", str(row) + "." + str(len(value)))

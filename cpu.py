@@ -198,7 +198,7 @@ class CPU:
             self.state.cycles_executed = self.state.cycles_executed - 1
 
     def is_finished(self):
-        return int(self.state.pc / 4) == len(self.memory) - 1
+        return self.state.pc // 4 == len(self.memory) - 1
 
     def tick(self):
         if self.is_finished():
@@ -251,7 +251,7 @@ class CPU:
     def _calc_mem_signals_request_cycle(self):
         self.state.signals.mem_signals.address = self.state.pipe.ex_mem.alu_result
         self.state.signals.mem_signals.mem_data = 0
-        word_address = int(self.state.signals.mem_signals.address / 4)
+        word_address = self.state.signals.mem_signals.address // 4
         data_word = self.state.pipe.ex_mem.register_file_data2
         if self.state.pipe.ex_mem.control_mem_read == 1:
             self.state.data_memory_system.read_request(word_address)

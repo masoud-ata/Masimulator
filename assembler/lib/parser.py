@@ -52,8 +52,7 @@ def p_program_label(p):
 def p_statement_R(p):
     'statement : OPCODE register COMMA register COMMA register NEWLINE'
     if p[1] not in mcc.INSTR_TYPE_R:
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ": Incorrect opcode or arguments")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) + " : Incorrect opcode or arguments")
         raise SyntaxError
     p[0] = {
         'opcode': p[1],
@@ -67,13 +66,13 @@ def p_statement_R(p):
 def p_statement_I_S_SB(p):
     'statement : OPCODE register COMMA register COMMA IMMEDIATE NEWLINE'
     if (p[1] not in mcc.INSTR_TYPE_I) and (p[1] not in mcc.INSTR_TYPE_S)and (p[1] not in mcc.INSTR_TYPE_SB):
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ": Incorrect opcode or arguments")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) +
+                       " : Incorrect opcode or arguments")
         raise SyntaxError
     elif p[1] in mcc.INSTR_TYPE_I:
         ret, imm, msg = get_imm_I(p[6], p.lineno(6))
         if not ret:
-            cp.cprint_fail("Error:" + str(p.lineno(6)) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(p.lineno(6)) + " : " + msg)
             raise SyntaxError
 
         p[0] = {
@@ -86,7 +85,7 @@ def p_statement_I_S_SB(p):
     elif p[1] in mcc.INSTR_TYPE_S:
         ret, imm, msg = get_imm_S(p[6], p.lineno(6))
         if not ret:
-            cp.cprint_fail("Error:" + str(p.lineno(1)) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(p.lineno(1)) + " : " + msg)
             raise SyntaxError
         p[0] = {
             'opcode': p[1],
@@ -98,7 +97,7 @@ def p_statement_I_S_SB(p):
     else:  # SB (BRANCH)
         ret, imm, msg = get_imm_SB(p[6], p.lineno(6))
         if not ret:
-            cp.cprint_fail("Error:" + str(p.lineno(1)) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(p.lineno(1)) + " : " + msg)
             raise SyntaxError
         p[0] = {
             'opcode': p[1],
@@ -111,15 +110,14 @@ def p_statement_I_S_SB(p):
 
 def p_statement_U_UJ(p):
     'statement : OPCODE register COMMA IMMEDIATE NEWLINE'
-
     if (p[1] not in mcc.INSTR_TYPE_U) and (p[1] not in mcc.INSTR_TYPE_UJ):
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ": Incorrect opcode or arguments")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) +
+                       " : Incorrect opcode or arguments")
         raise SyntaxError
     elif p[1] in mcc.INSTR_TYPE_U:
-        ret, imm, msg = get_imm_U(p[4], p.lineno(4))
+        ret, imm, msg = get_imm_U(p[4], p.lexer.lineno)
         if not ret:
-            cp.cprint_fail("Error:" + str(p.lineno(1)) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(p.lineno(1)) + " : " + msg)
             raise SyntaxError
         p[0] = {
             'opcode': p[1],
@@ -130,7 +128,7 @@ def p_statement_U_UJ(p):
     else:  # UJ Type
         ret, imm, msg = get_imm_UJ(p[4], p.lineno(4))
         if not ret:
-            cp.cprint_fail("Error:" + str(p.lineno(1)) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(p.lineno(1)) + " : " + msg)
             raise SyntaxError
         p[0] = {
             'opcode': p[1],
@@ -142,10 +140,9 @@ def p_statement_U_UJ(p):
 
 def p_statement_UJ_LABEL(p):
     'statement : OPCODE register COMMA LABEL NEWLINE'
-
     if (p[1] not in mcc.INSTR_TYPE_UJ):
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ": Incorrect opcode or arguments")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) +
+                       " : Incorrect opcode or arguments")
         raise SyntaxError
     else:  # UJ Type
         p[0] = {
@@ -160,8 +157,8 @@ def p_statement_SB__JALR_LABEL(p):
     'statement : OPCODE register COMMA register COMMA LABEL NEWLINE'
     # Branch and JALR
     if (p[1] not in mcc.INSTR_TYPE_SB) and (p[1] != mcc.INSTR_JALR):
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ": Incorrect opcode or arguments")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) +
+                       " : Incorrect opcode or arguments")
         raise SyntaxError
     if p[1] in mcc.INSTR_TYPE_SB:
         p[0] = {
@@ -187,8 +184,8 @@ def p_register(p):
     r = r[1:]
     r = int(r)
     if (r < 0) or (r > 31):
-        cp.cprint_fail("Error:" + str(p.lineno(1)) +
-                       ":Invalid register index.")
+        cp.cprint_fail("Error: line " + str(p.lineno(1)) +
+                       " : Invalid register index.")
         raise SyntaxError
     p[0] = p[1]
 
@@ -231,7 +228,7 @@ def get_imm_I(imm10, lineno):
     IMM_MIN = -0b100000000000
 
     if (imm10 > IMM_MAX) or (imm10 < IMM_MIN):
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate is too big, will overflow.")
     # Conver to 2's complement binary
     imm2 = format(imm10 if imm10 >= 0 else (1 << 12) + imm10, '012b')
@@ -254,12 +251,12 @@ def get_imm_U(imm10, lineno):
     particular that has to be checked about this immediate except
     that it fits into the 20 bit width.
     '''
-    IMM_MAX = 0b01111111111111111111
-    IMM_MIN = -0b10000000000000000000
+    IMM_MAX = 0b11111111111111111111
+    IMM_MIN = -0b100000000000000000000
 
     if (imm10 > IMM_MAX) or (imm10 < IMM_MIN):
-        cp.cprint_warn("Warning:" + str(p.lineno(1)) + ":" +
-                       "Immediate is too big, will overflow.")
+        cp.cprint_warn("Warning: line " + str(lineno-1)+ " : Immediate is too big, will overflow.")
+
     # Conver to 2's complement binary
     imm2 = format(imm10 if imm10 >= 0 else (1 << 20) + imm10, '020b')
     imm2 = imm2[-20:]
@@ -294,12 +291,12 @@ def get_imm_UJ(imm10, lineno):
     IMM_MIN = -0b100000000000000000000
 
     if (imm10 > IMM_MAX) or (imm10 < IMM_MIN):
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate is too big, will overflow.")
     # Conver to 2's complement binary
     imm2 = format(imm10 if imm10 >= 0 else (1 << 21) + imm10, '021b')
     if imm2[-1:] != '0':
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate not 2 bytes aligned. Last bit will" +
                        "be dropped.")
     imm2 = imm2[0:-1]
@@ -338,12 +335,12 @@ def get_imm_S(imm10, lineno):
     IMM_MIN = -0b100000000000
 
     if (imm10 > IMM_MAX) or (imm10 < IMM_MIN):
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        " Immediate is too big, will overflow.")
     # Convert to 2's complement binary
     imm2 = format(imm10 if imm10 >= 0 else (1 << 12) + imm10, '012b')
-    if imm2[-1] != 0:
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+    if imm2[-1] != '0':
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate not 2 bytes aligned. Last bit will" +
                        "be dropped.")
     imm2 = imm2[0:12]
@@ -373,12 +370,12 @@ def get_imm_SB(imm10, lineno):
     IMM_MIN = -0b1000000000000
 
     if (imm10 > IMM_MAX) or (imm10 < IMM_MIN):
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate is too big, will overflow.")
     # Convert to 2's complement binary
     imm2 = format(imm10 if imm10 >= 0 else (1 << 13) + imm10, '013b')
     if imm2[-1] != '0':
-        cp.cprint_warn("Warning:" + str(lineno) + ":" +
+        cp.cprint_warn("Warning: line " + str(lineno) + " : " +
                        "Immediate not 2 bytes aligned. Last bit will" +
                        "be dropped.")
     imm2 = imm2[0:12]
@@ -401,8 +398,8 @@ def p_error(p):
     lineno = ''
     if p:
         lineno = str(p.lineno)
-        cp.cprint_fail("Error:" + lineno + ": Invalid or incomplete token" +
-                       " found '" + str(p.value) + "'")
+        cp.cprint_fail("Error: line " + lineno + " : Invalid or incomplete token" +
+                       " found")
     else:
         cp.cprint_fail("Error: Invalid or incomplete token found " +
                        "Did you end with a newline?")
@@ -427,8 +424,8 @@ def encode_offset(ltokens, address, target):
         if not ret:
             # Label translation should not raise errors,
             # Warnings make sense.
-            cp.cprint_fail("Internal error:" +
-                           str(tokens['lineno']) + ":" + msg)
+            cp.cprint_fail("Internal error: " +
+                           str(tokens['lineno']) + " : " + msg)
             raise Exception("")
         result = {
             'opcode': ltokens['opcode'],
@@ -440,7 +437,7 @@ def encode_offset(ltokens, address, target):
     elif ltokens['opcode'] in mcc.INSTR_TYPE_SB:
         ret, imm, msg = get_imm_SB(offset, lineno)
         if not ret:
-            cp.cprint_fail("Internal error:" + str(lineno) + ":" + msg)
+            cp.cprint_fail("Internal error: line " + str(lineno) + " : " + msg)
             raise Exception("")
         result = {
             'opcode': ltokens['opcode'],
@@ -452,7 +449,7 @@ def encode_offset(ltokens, address, target):
     elif ltokens['opcode'] == mcc.INSTR_JALR:
         ret, imm, msg = get_imm_I(offset, lineno)
         if not ret:
-            cp.cprint_fail("Error:" + str(lineno) + ":" + msg)
+            cp.cprint_fail("Error: line " + str(lineno) + " : " + msg)
             raise SyntaxError
 
         result = {
@@ -463,7 +460,7 @@ def encode_offset(ltokens, address, target):
             'lineno': lineno
         }
     else:
-        cp.cprint_fail("Error: " + str(lineno) + " : " +
+        cp.cprint_fail("Error: line " + str(lineno) + " : " +
                        "Label not supported in '" +
                        str(ltokens['opcode']) + "'")
 
@@ -484,7 +481,7 @@ def parse_pass_one(fin, args):
     # Suppress instruction warnings
     prev_warn = cp.warn
     prev_warn32 = cp.warn32
-    cp.warn = False
+    # cp.warn = False
     cp.warn32 = False
     for line in fin:
         result = parser.parse(line)
@@ -498,7 +495,7 @@ def parse_pass_one(fin, args):
         if not result['tokens']['label'] in symbols_table:
             symbols_table[result['tokens']['label']] = address
         else:
-            cp.cprint_fail("Error: " + str(result['tokens']['lineno']) +
+            cp.cprint_fail("Error:line  " + str(result['tokens']['lineno']) +
                            " : Redeclaration of label '" +
                            str(result['tokens']) + "'.")
             raise Exception("")
@@ -528,8 +525,7 @@ def parse_pass_two(fin, fout, symbols_table, args):
         result = result['tokens']
         if 'label' in result:
             if result['label'] not in symbols_table:
-                cp.cprint_fail("Error: " + str(result['lineno']) +
-                               " : Label used but never defined '" +
+                cp.cprint_fail("Error: line " + str(result['lineno']) + " : Label used but never defined '" +
                                str(result['label']) + "'.")
                 raise Exception("")
             result = encode_offset(
@@ -554,6 +550,7 @@ def parse_pass_two(fin, fout, symbols_table, args):
 
 
 def parse_input(infile, **kwargs):
+    reset_lineno()
     if kwargs['no_color']:
         cp.no_color = True
     if kwargs['no_32']:
@@ -564,6 +561,7 @@ def parse_input(infile, **kwargs):
     except IOError:
         cp.cprint_fail("Error: File does not seem to exist or" +
                        " you do not have the required permissions.")
+        fin.close()
         return 1
 
     outfile = kwargs['outfile']

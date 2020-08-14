@@ -32,8 +32,8 @@ _lr_productions = [
   ('statement -> OPCODE register COMMA register COMMA register NEWLINE','statement',7,'p_statement_R','parser.py',53),
   ('statement -> OPCODE register COMMA register COMMA IMMEDIATE NEWLINE','statement',7,'p_statement_I_S_SB','parser.py',68),
   ('statement -> OPCODE register COMMA IMMEDIATE NEWLINE','statement',5,'p_statement_U_UJ','parser.py',113),
-  ('statement -> OPCODE register COMMA LABEL NEWLINE','statement',5,'p_statement_UJ_LABEL','parser.py',144),
-  ('statement -> OPCODE register COMMA register COMMA LABEL NEWLINE','statement',7,'p_statement_SB__JALR_LABEL','parser.py',160),
-  ('register -> REGISTER','register',1,'p_register','parser.py',185),
-  ('statement -> NEWLINE','statement',1,'p_statement_none','parser.py',197),
+  ('statement -> OPCODE register COMMA LABEL NEWLINE','statement',5,'p_statement_UJ_LABEL','parser.py',143),
+  ('statement -> OPCODE register COMMA register COMMA LABEL NEWLINE','statement',7,'p_statement_SB__JALR_LABEL','parser.py',158),
+  ('register -> REGISTER','register',1,'p_register','parser.py',183),
+  ('statement -> NEWLINE','statement',1,'p_statement_none','parser.py',195),
 ]
