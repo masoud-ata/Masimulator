@@ -1,55 +1,36 @@
-#
-# @author:Don Dennis
-# recursive_sum_of_n.rvi
-#
-# Finds sum of the first N 
-# numbers recursively. Demonstrates
-# how recursive functions can be added.
-# 
-# $31: Return Address
-# $30: Stack Pointer
-# $29: Return Value
-# $1 : N
+# Finds sum of the first N numbers recursively. 
 
-_START:
-	addi $1,$0,10
-	jal $31, FAB
-HALT:
-	jal $31, HALT
+# x1: Return Address
+# x30: Stack Pointer
+# x10 : n but also sum function's return value
 
-FAB:
-	addi $3, $31, 0
-	jal $31, PUSH
-	addi $4, $0, 2
-	blt $1, $4, RET_ONE
-	add $3, $0, $1
-	jal $31, PUSH
-	addi $1, $1, -1
-	jal $31, FAB
-	jal $31, POP
-	add $29, $29, $3
-	addi $3, $0, 0
-	beq $3, $0, RET
-RET_ONE: 
-	addi $29, $0, 1
-RET:
-	jal $31, POP
-	add $31, $0, $3
-	jalr $0, $31, 0
+START:
+    addi x10, x0, 10        # n
+    jal x1, SUM             # Sum(n)
+    jal x1, END
 
-PUSH:
-	addi $30,$30,4
-	sw   $30,$3, 0
-	jalr $0,$31,0
-POP:
-	lw $3, $30,0
-	addi $30,$30,-4
-	jalr $0,$31,0	
+SUM:    
+    sw x1, 0(x30)           # Save return address on stack 
+    sw x10, 4(x30)          # Save argument n
+    addi x30, x30, 8        # Adjust stack pointer
 
-SWAP:
-	add $3,$0,$1
-	add $1,$0,$2
-	add $2,$0,$3
-	jalr $0,$31,0
+    addi x11, x10, -1       # x11 = n - 1
+    nop
+    nop
+    bge x11, x0, RECUR      # if (n - 1) >= 0 then do a recursive call
+    addi x10, x0, 0         # Return 0 (base case)
+    addi x30, x30, -8       # Pop 2 items 
+    ret
+RECUR:    
+    addi x10, x10, -1       # n - 1
+    jal x1, SUM             # Sum(n-1)
+    addi x20, x10, 0        # x20 = rsult of sum. i.e. x20 = Sum(n - 1)  
+    addi x30, x30, -8       # Adjust the stack
+    lw x10, 4(x30)          # Restore n
+    lw x1, 0(x30)           # Restore return address
+    add x10, x10, x20       # x10 = n + sum(n - 1)
+    nop
+    nop    
+    ret                     # return x10
 
-	
+END:

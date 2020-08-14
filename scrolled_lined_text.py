@@ -58,7 +58,7 @@ class ScrolledLinedText(tk.Frame):
         self.text = CustomText(self)
         self.vsb = tk.Scrollbar(orient="vertical", command=self.text.yview)
         self.text.configure(yscrollcommand=self.vsb.set)
-        self.linenumbers = TextLineNumbers(self, width=30)
+        self.linenumbers = TextLineNumbers(self, width=40)
         self.linenumbers.attach(self.text)
 
         self.vsb.pack(side="right", fill="y")

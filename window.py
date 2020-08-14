@@ -423,7 +423,7 @@ class Screen:
             f.write(self.editor_text.get("1.0", END)[:-1])
 
     def _save_as_file_dialog(self):
-        filename = filedialog.asksaveasfilename(initialdir=".", title="Select file",filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+        filename = filedialog.asksaveasfilename(title="Select file",filetypes=[("Assembly files ", "*.rvi"), ("Assembly files", "*.s"), ("all files", "*.*")])
         if filename != "":
             self.assembly_file_name = filename
             self.assembly_file_name_title.set(filename)
@@ -441,7 +441,7 @@ class Screen:
         self.add_to_recent_file_list(filename)
 
     def _open_and_assemble_dialog(self):
-        filename = filedialog.askopenfilename(initialdir=".", title="Select file", filetypes=(("Assembly files", "*.rvi"), ("all files", "*.*")))
+        filename = filedialog.askopenfilename(title="Select file", filetypes=(("Assembly files", "*.rvi *.s"), ("all files", "*.*")))
         if filename != "":
             self._open_and_assemble_file(filename)
 
