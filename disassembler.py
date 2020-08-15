@@ -1,5 +1,6 @@
 g_instruction_set = ('nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
-            'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal', 'ret')
+            'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal', 'ret', 'sll', 'srl', 'sra',
+            'andi', 'ori', 'xori', 'slli', 'srli', 'srai')
 
 
 class BranchTypes:
@@ -78,7 +79,7 @@ def disassemble(inst):
 
     LUI = 0b0110111
     R_FORMAT = 0b0110011
-    ADDI = 0b0010011
+    I_FORMAT = 0b0010011
     LOAD = 0b0000011
     STORE = 0b0100011
     BRANCH = 0b1100011
@@ -90,7 +91,7 @@ def disassemble(inst):
         LOAD: "",
         STORE: "sw",
         BRANCH: "",
-        ADDI: "addi",
+        I_FORMAT: "",
         R_FORMAT: "",
         JAL: "jal",
         RET: "ret"
@@ -117,9 +118,27 @@ def disassemble(inst):
     elif instruction.opcode() == STORE:
         assembly_code = assembly_code + " x" + str(instruction.rs2()) + ", " + str(instruction.imm_s()) + "(x" + str(
             instruction.rs1()) + ")"
-    elif instruction.opcode() == ADDI:
+    elif instruction.opcode() == I_FORMAT:
+        immediate = instruction.imm_i()
+        if instruction.funct3() == 0b000:
+            assembly_code = "addi"
+        elif instruction.funct3() == 0b111:
+            assembly_code = "andi"
+        elif instruction.funct3() == 0b110:
+            assembly_code = "ori"
+        elif instruction.funct3() == 0b100:
+            assembly_code = "xori"
+        elif instruction.funct3() == 0b001:
+            assembly_code = "slli"
+            immediate = immediate & 0x1f
+        elif instruction.funct3() == 0b101 and (instruction.funct7() >> 1) == 0b000000:
+            assembly_code = "srli"
+            immediate = immediate & 0x1f
+        elif instruction.funct3() == 0b101 and (instruction.funct7() >> 1) == 0b010000:
+            assembly_code = "srai"
+            immediate = immediate & 0x1f
         assembly_code = assembly_code + " x" + str(instruction.rd()) + ", x" + str(instruction.rs1()) + ", " + str(
-            instruction.imm_i())
+            immediate)
     elif instruction.opcode() == BRANCH:
         if instruction.funct3() == BranchTypes.BEQ:
             assembly_code = "beq"
@@ -155,6 +174,12 @@ def disassemble(inst):
             assembly_code = "slt"
         elif alu_control == 0b0011:
             assembly_code = "sltu"
+        elif alu_control == 0b0001:
+            assembly_code = "sll"
+        elif alu_control == 0b0101:
+            assembly_code = "srl"
+        elif alu_control == 0b1101:
+            assembly_code = "sra"
         assembly_code = assembly_code + " x" + str(instruction.rd()) + ", x" + str(instruction.rs1()) + ", x" + str(
             instruction.rs2())
 

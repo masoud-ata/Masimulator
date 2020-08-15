@@ -2,6 +2,7 @@ from disassembler import Instruction, BranchTypes
 from utils import *
 from memory import *
 import copy
+import numpy
 
 ALU_AND = 0
 ALU_OR = 1
@@ -11,10 +12,13 @@ ALU_SUB = 4
 ALU_SLT = 5
 ALU_SLTU = 6
 ALU_RIGHT = 7
+ALU_SLL = 8
+ALU_SRL = 9
+ALU_SRA = 10
 
 LUI = 0b0110111
 R_FORMAT = 0b0110011
-ADDI = 0b0010011
+I_FORMAT = 0b0010011
 LOAD = 0b0000011
 STORE = 0b0100011
 BRANCH = 0b1100011
@@ -332,8 +336,28 @@ class CPU:
                 self.state.signals.id_signals.control_alu_op = ALU_SLT
             elif funct3 == 0b011 and funct7 == 0b0000000:
                 self.state.signals.id_signals.control_alu_op = ALU_SLTU
+            elif funct3 == 0b001 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_SLL
+            elif funct3 == 0b101 and funct7 == 0b0000000:
+                self.state.signals.id_signals.control_alu_op = ALU_SRL
+            elif funct3 == 0b101 and funct7 == 0b0100000:
+                self.state.signals.id_signals.control_alu_op = ALU_SRA
             self.state.signals.id_signals.control_reg_write = 1
-        elif opcode == ADDI:
+        elif opcode == I_FORMAT:
+            if funct3 == 0b000:
+                self.state.signals.id_signals.control_alu_op = ALU_ADD
+            elif funct3 == 0b111:
+                self.state.signals.id_signals.control_alu_op = ALU_AND
+            elif funct3 == 0b110:
+                self.state.signals.id_signals.control_alu_op = ALU_OR
+            elif funct3 == 0b100:
+                self.state.signals.id_signals.control_alu_op = ALU_XOR
+            elif funct3 == 0b001:
+                self.state.signals.id_signals.control_alu_op = ALU_SLL
+            elif funct3 == 0b101 and (funct7 >> 1) == 0b000000:
+                self.state.signals.id_signals.control_alu_op = ALU_SRL
+            elif funct3 == 0b101 and (funct7 >> 1) == 0b010000:
+                self.state.signals.id_signals.control_alu_op = ALU_SRA
             self.state.signals.id_signals.control_reg_write = 1
             self.state.signals.id_signals.control_alu_src = 1
         elif opcode == LOAD:
@@ -405,7 +429,15 @@ class CPU:
             ex_alu_result = 1 if to_uint32(left) < to_uint32(right) else 0
         elif control == ALU_RIGHT:
             ex_alu_result = to_int32(right)
-
+        elif control == ALU_SLL:
+            shift_amount = right & 0x1f
+            ex_alu_result = to_int32(left << shift_amount)
+        elif control == ALU_SRL:
+            shift_amount = right & 0x1f
+            ex_alu_result = to_int32((left & 0xffffffff) >> shift_amount)
+        elif control == ALU_SRA:
+            shift_amount = right & 0x1f
+            ex_alu_result = to_int32(left >> shift_amount)
         return ex_alu_result
 
     def _ex_forward_stuff(self):

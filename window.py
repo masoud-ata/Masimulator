@@ -105,7 +105,7 @@ class Screen:
 
     def _editor_any_key_pressed(self, arg):
         self._highlight_syntax()
-        if arg.char != "":
+        if arg.char != "" or arg.keysym == "BackSpace":
             self.assembly_status_icon.config(bg="black")
 
     def _editor_tab_key_pressed(self, arg):
@@ -405,17 +405,19 @@ class Screen:
         editor_lines = io.StringIO(self.editor_text.get("1.0", END)).readlines()
         for line_number, line_string in enumerate(editor_lines):
             line_tokens = line_string.replace("\n", " ").split(" ")
+            comment_start_pos = line_string.find("#")
+            line_has_comment = comment_start_pos >= 0
             for instruction in g_instruction_set:
                 if instruction in line_tokens:
                     pos = line_string.find(instruction)
-                    if pos >= 0:
+                    appears_in_comment = line_has_comment and comment_start_pos < pos
+                    if pos >= 0 and not (appears_in_comment):
                         self.editor_text.tag_add("here", str(line_number + 1) + "." + str(pos), str(line_number + 1) + "." + str(pos + len(instruction)))
                         self.editor_text.tag_config("here", foreground="blue")
                     break
-            start_pos = line_string.find("#")
             end_pos = line_string.find("\n")
-            if start_pos >= 0:
-                self.editor_text.tag_add("comment", str(line_number + 1) + "." + str(start_pos), str(line_number + 1) + "." + str(end_pos))
+            if line_has_comment:
+                self.editor_text.tag_add("comment", str(line_number + 1) + "." + str(comment_start_pos), str(line_number + 1) + "." + str(end_pos))
                 self.editor_text.tag_config("comment", foreground="green")
 
     def _save_assembly_file(self, arg=0):

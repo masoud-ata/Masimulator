@@ -342,9 +342,11 @@ class MachineCodeGenerator:
 
         if opcode in (self.CONST.INSTR_SRAI):
             if imm[0:7] != '0100000':
-                cp.cprint_warn("Warning:" + str(tokens['lineno']) +
-                               ": Upper 7 bits of immediate should be " +
-                               "01000000")
+                # cp.cprint_warn("Warning:" + str(tokens['lineno']) +
+                #                ": Upper 7 bits of immediate should be " +
+                #                "01000000")
+                imm = "0100000" + imm[7:12]
+                bin_str = imm + bin_rs1 + funct3 + bin_rd + bin_opcode
 
         tok_dict = {
             'opcode': bin_opcode,
