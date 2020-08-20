@@ -1,6 +1,6 @@
 g_instruction_set = ('nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
             'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal', 'ret', 'sll', 'srl', 'sra',
-            'andi', 'ori', 'xori', 'slli', 'srli', 'srai')
+            'andi', 'ori', 'xori', 'slli', 'srli', 'srai', 'mul')
 
 
 class BranchTypes:
@@ -160,7 +160,9 @@ def disassemble(inst):
         assembly_code = assembly_code
     elif instruction.opcode() == R_FORMAT:
         alu_control = (instruction.funct7() & 0b100000) >> 2 | instruction.funct3()
-        if alu_control == 0b0000:
+        if instruction.funct7() == 0b0000001 and instruction.funct3() == 0b000:
+            assembly_code = "mul"
+        elif alu_control == 0b0000:
             assembly_code = "add"
         elif alu_control == 0b1000:
             assembly_code = "sub"

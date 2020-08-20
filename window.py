@@ -182,6 +182,10 @@ class Screen:
 
     # Creates 3D arrays for cache visualization
     def _cache_visual_init(self):
+        self.cache_requested_address = StringVar()
+        self.cache_requested_address_tag = StringVar()
+        self.cache_requested_address_index = StringVar()
+        self.cache_requested_address_block_offset = StringVar()
         self.cache_values = []
         self.cache_tags = []
         self.cache_valid_bits = []
@@ -285,15 +289,51 @@ class Screen:
         b.grid(row=3, column=4, sticky=W)
 
     def _memory_window_visual_setup(self):
-        cache_size = self.risc_v.state.data_memory_system.cache.size
         self.cache_visual_pane = ttk.Panedwindow(self.memory_window, orient=VERTICAL, width=400, height=300)
         self.cache_visual_pane.place(x=50, y=120)
 
-        layout = ttk.Notebook(self.cache_visual_pane)
-        tabel = Frame(layout)
-        tabel.pack(fill="both")
-        cache_size = self.risc_v.state.data_memory_system.cache.size
+        if MemorySettings.cache_active:
+            layout = ttk.Notebook(self.cache_visual_pane)
+            table = Frame(layout)
+            table.pack(fill="both")
+            self._address_breakup_visual_setup(table)
+            self._cache_contetnts_visual_setup(table)
+            layout.add(table, text="data cache")
+            layout.pack(fill="both")
 
+    def _address_breakup_visual_setup(self, table):
+        tag_bits, index_bits, block_offset_bits = self.risc_v.state.data_memory_system.get_address_breakup_bits()
+
+        address_breakup_pane = ttk.Panedwindow(table, orient=VERTICAL, width=800, height=50)
+        address_breakup_pane.grid(row=0, column=0, columnspan=10, sticky=W)
+
+        bits = Label(address_breakup_pane, text="bits: ", fg="black", anchor='w')
+        bits.grid(row=0, column=0, sticky=W)
+        self.cache_requested_address.set("address: ")
+        incoimg_address = Label(address_breakup_pane, textvariable=self.cache_requested_address, width=12, fg="black", anchor='w')
+        incoimg_address.grid(row=1, column=0, sticky=E)
+        num_tag_bits = Label(address_breakup_pane, text=tag_bits, width=10)
+        num_tag_bits.grid(row=0, column=1, sticky=W)
+        tag_field = Label(address_breakup_pane, textvariable=self.cache_requested_address_tag, width=10, bg="white", fg="black")
+        tag_field.grid(row=1, column=1, sticky="nsew", padx=2, pady=3)
+        if index_bits:
+            num_index_bits = Label(address_breakup_pane, text=index_bits, width=index_bits)
+            num_index_bits.grid(row=0, column=2, sticky=W)
+            index_field = Label(address_breakup_pane, textvariable=self.cache_requested_address_index, width=index_bits, bg="white", fg="black")
+            index_field.grid(row=1, column=2, sticky="nsew", padx=2, pady=3)
+        if block_offset_bits:
+            num_block_offset_bits = Label(address_breakup_pane, text=block_offset_bits, width=block_offset_bits)
+            num_block_offset_bits.grid(row=0, column=3, sticky=W)
+            block_offset_field = Label(address_breakup_pane, textvariable=self.cache_requested_address_block_offset, width=block_offset_bits, bg="white", fg="black")
+            block_offset_field.grid(row=1, column=3, sticky="nsew", padx=2, pady=3)
+        byte_bits = Label(address_breakup_pane, text="2", width=1)
+        byte_bits.grid(row=0, column=4, sticky=W)
+        byte_field = Label(address_breakup_pane, text=0, width=1, bg="white", fg="black")
+        byte_field.grid(row=1, column=4, sticky="nsew", padx=2, pady=3)
+        empty_space = Label(address_breakup_pane)
+        empty_space.grid(row=2, column=0, sticky="nsew", padx=2, pady=3)
+
+    def _cache_contetnts_visual_setup(self, table):
         set_width = 3
         valid_width = 2
         replace_width = 2
@@ -301,58 +341,67 @@ class Screen:
         tag_width = 7
         word_width = 13
 
-        set_title = Label(tabel, text="Set", width=set_width, fg="black")
-        set_title.grid(row=0, column=0, sticky=E, padx=3, pady=3)
+        cache_size = self.risc_v.state.data_memory_system.cache.size
+
+        set_title = Label(table, text="Set", width=set_width, fg="black")
+        set_title.grid(row=1, column=0, sticky=E, padx=3, pady=3)
 
         for set in range(cache_size["sets"]):
             col = 0
-            set_num = Label(tabel, text=set, width=set_width, fg="blue")
-            set_num.grid(row=set+1, column=col, sticky=E, padx=3, pady=3)
+            set_num = Label(table, text=set, width=set_width, fg="blue")
+            set_num.grid(row=set + 2, column=col, sticky=E, padx=3, pady=3)
             for block in range(cache_size["blocks_per_set"]):
                 col = col + 1
                 if set == 0:
-                    dirt_title = Label(tabel, text="D", width=dirty_width, fg="black")
-                    dirt_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
-                cache_dirty = Label(tabel, textvariable=self.cache_dirty_bits[set][block], width=dirty_width, bg="white", fg="black")
-                cache_dirty.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
+                    dirt_title = Label(table, text="D", width=dirty_width, fg="black")
+                    dirt_title.grid(row=1, column=col, sticky=E, padx=3, pady=3)
+                cache_dirty = Label(table, textvariable=self.cache_dirty_bits[set][block], width=dirty_width,
+                                    bg="white", fg="black")
+                cache_dirty.grid(row=set + 2, column=col, sticky="nsew", padx=3, pady=3)
                 col = col + 1
                 if set == 0:
-                    valid_title = Label(tabel, text="V", width=valid_width, fg="black")
-                    valid_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
-                cache_valid = Label(tabel, textvariable=self.cache_valid_bits[set][block], width=valid_width, bg="white", fg="black")
-                cache_valid.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
+                    valid_title = Label(table, text="V", width=valid_width, fg="black")
+                    valid_title.grid(row=1, column=col, sticky=E, padx=3, pady=3)
+                cache_valid = Label(table, textvariable=self.cache_valid_bits[set][block], width=valid_width,
+                                    bg="white", fg="black")
+                cache_valid.grid(row=set + 2, column=col, sticky="nsew", padx=3, pady=3)
                 if MemorySettings.cache_replacement_policy != "Random":
                     col = col + 1
                     if set == 0:
-                        replace_title = Label(tabel, text="R", width=replace_width, fg="black")
-                        replace_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
-                    cache_replace = Label(tabel, textvariable=self.cache_replace_bits[set][block], width=replace_width, bg="white", fg="black")
-                    cache_replace.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
+                        replace_title = Label(table, text="R", width=replace_width, fg="black")
+                        replace_title.grid(row=1, column=col, sticky=E, padx=3, pady=3)
+                    cache_replace = Label(table, textvariable=self.cache_replace_bits[set][block], width=replace_width,
+                                          bg="white", fg="black")
+                    cache_replace.grid(row=set + 2, column=col, sticky="nsew", padx=3, pady=3)
                 col = col + 1
                 if set == 0:
-                    tag_title = Label(tabel, text="Tag", width=tag_width, fg="black")
-                    tag_title.grid(row=0, column=col, sticky=E, padx=3, pady=3)
-                cache_tag = Label(tabel, textvariable=self.cache_tags[set][block], width=tag_width, bg="white", fg="black")
-                cache_tag.grid(row=set+1, column=col, sticky="nsew", padx=3, pady=3)
+                    tag_title = Label(table, text="Tag", width=tag_width, fg="black")
+                    tag_title.grid(row=1, column=col, sticky=E, padx=3, pady=3)
+                cache_tag = Label(table, textvariable=self.cache_tags[set][block], width=tag_width, bg="white",
+                                  fg="black")
+                cache_tag.grid(row=set + 2, column=col, sticky="nsew", padx=3, pady=3)
                 for word in range(self.risc_v.state.data_memory_system.cache.size["words_per_block"]):
                     col = col + 1
                     if set == 0:
-                        word_title = Label(tabel, text="Word "+str(word), width=word_width, fg="black")
-                        word_title.grid(row=0, column=col, sticky=E, padx=1, pady=3)
-                    self.cache_word_lables[set][block][word] = Label(tabel, textvariable=self.cache_values[set][block][word], relief=SOLID, width=word_width, bg="white", fg="black")
-                    self.cache_word_lables[set][block][word].grid(row=set+1, column=col, sticky="nsew", padx=1, pady=3)
+                        word_title = Label(table, text="Word " + str(word), width=word_width, fg="black")
+                        word_title.grid(row=1, column=col, sticky=E, padx=1, pady=3)
+                    self.cache_word_lables[set][block][word] = Label(table,
+                                                                     textvariable=self.cache_values[set][block][word],
+                                                                     relief=SOLID, width=word_width, bg="white",
+                                                                     fg="black")
+                    self.cache_word_lables[set][block][word].grid(row=set + 2, column=col, sticky="nsew", padx=1,
+                                                                  pady=3)
                 col = col + 1
-                empty_space = Label(tabel, width=3)
-                empty_space.grid(row=set+1, column=col, sticky=E, padx=3, pady=3)
-
-        layout.add(tabel, text="data cache")
-        layout.pack(fill="both")
+                empty_space = Label(table, width=3)
+                empty_space.grid(row=set + 2, column=col, sticky=E, padx=3, pady=3)
 
     def on_memory_window_closing(self):
         self.memory_window_open = False
         self.memory_window.destroy()
 
     def _setup_memory_window(self):
+        if self.memory_window_open:
+            return
         self.memory_window_open = True
         self.memory_window = Toplevel(self.pipeline_window)
         self.memory_window.wm_title("Memory")
@@ -390,13 +439,19 @@ class Screen:
     def _setup_buttons(self, cpu_step, cpu_back, cpu_reset, cpu_execute_all):
         buttons_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)
         buttons_pane.place(x=0, y=0)
-        step_button = Button(buttons_pane, text="Step (F1)", command=cpu_step)
-        step_button.grid(row=0, column=0, sticky=W)
-        back_button = Button(buttons_pane, text="Back (F2)", command=cpu_back)
+
+        self.icon_step = PhotoImage(file=r"images/icon_step.png")
+        self.icon_backstep = PhotoImage(file=r"images/icon_backstep.png")
+        self.icon_finish = PhotoImage(file=r"images/icon_finish.png")
+        self.icon_reset = PhotoImage(file=r"images/icon_reset.png")
+
+        self.step_button = Button(buttons_pane, text="(F1)", command=cpu_step, image=self.icon_step, compound=LEFT)
+        self.step_button.grid(row=0, column=0, sticky=W)
+        back_button = Button(buttons_pane, text="(F2)", command=cpu_back, image=self.icon_backstep, compound=LEFT)
         back_button.grid(row=0, column=1, sticky=W)
-        reset_button = Button(buttons_pane, text="Reset (F3)", command=cpu_reset)
+        reset_button = Button(buttons_pane, text="(F3)", command=cpu_execute_all, image=self.icon_finish, compound=LEFT)
         reset_button.grid(row=0, column=2, sticky=W)
-        reset_button = Button(buttons_pane, text="Execute All (F4)", command=cpu_execute_all)
+        reset_button = Button(buttons_pane, text="(F4)", command=cpu_reset, image=self.icon_reset, compound=LEFT)
         reset_button.grid(row=0, column=3, sticky=W)
 
     def _highlight_syntax(self):
@@ -587,9 +642,9 @@ class Screen:
         elif key == "F2":
             self.backstep_callback()
         elif key == "F3":
-            self.reset_callback()
-        elif key == "F4":
             self.execute_all_callback()
+        elif key == "F4":
+            self.reset_callback()
 
     def refresh_pipeline_box(self):
         self.pipe_graphics.refresh_pipeline(self.risc_v)
@@ -766,7 +821,7 @@ class Screen:
         self.refresh_program_memory_box(0)
         self.refresh_pipeline_box()
         self.refresh_statistics()
-        self.refresh_cache_window()
+        self.refresh_cache_window(1)
 
     def execute_all_callback(self):
         self.step_callback()
@@ -815,12 +870,24 @@ class Screen:
     def refresh_statistics(self):
         self.num_cycles.set(str(self.risc_v.state.cycles_executed))
 
-    def refresh_cache_window(self):
+    def refresh_cache_window(self, reset=0):
         if MemorySettings.cache_active:
+            if reset:
+                self.cache_requested_address_tag.set("")
+                self.cache_requested_address_index.set("")
+                self.cache_requested_address_block_offset.set("")
+                self.cache_requested_address.set("address: ")
             cache = self.risc_v.state.data_memory_system.cache
             hits_plus_misses = cache.book_keeping_hits + cache.book_keeping_misses
             hit_rate = (cache.book_keeping_hits / hits_plus_misses) if hits_plus_misses != 0 else cache.book_keeping_hits / 1.0
             self.cache_hit_rate.set("{:.2f}".format(hit_rate))
+            if self.risc_v.state.pipe.ex_mem.control_mem_read or self.risc_v.state.pipe.ex_mem.control_mem_write:
+                st = "address: " + str(self.risc_v.state.signals.mem_signals.address) + " "
+                tag, index, block_offset = self.risc_v.state.data_memory_system.get_address_breakup_fields(self.risc_v.state.signals.mem_signals.address)
+                self.cache_requested_address_tag.set(tag)
+                self.cache_requested_address_index.set(index)
+                self.cache_requested_address_block_offset.set(block_offset)
+                self.cache_requested_address.set(st)
             for set in range(cache.size["sets"]):
                 for block in range(cache.size["blocks_per_set"]):
                     self.cache_tags[set][block].set(cache.tags[set, block])

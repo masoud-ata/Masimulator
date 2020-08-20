@@ -64,8 +64,8 @@ class Cache:
         self.size = {"sets": sets, "blocks_per_set": blocks_per_set, "words_per_block": words_per_block}
 
     def modify(self, address, data, word_index):
-        tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
-        set = tag & (self.size["sets"] - 1)
+        tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
         for block in range(self.size["blocks_per_set"]):
             if self.valid_bits[set, block] == 1 and self.tags[set, block] == tag:
                 for word in range(MemorySettings.num_words_per_block):
@@ -87,8 +87,8 @@ class Cache:
                 return
 
     def place(self, address, data):
-        tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
-        set = tag & (self.size["sets"] - 1)
+        tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
         for block in range(self.size["blocks_per_set"]):
             if self.valid_bits[set][block] == 0:
                 for word in range(MemorySettings.num_words_per_block):
@@ -111,8 +111,8 @@ class Cache:
                 break
 
     def replace(self, address, data):
-        tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
-        set = tag & (self.size["sets"] - 1)
+        tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
         replaced_block = self._find_a_replacement_block(set)
 
         self.write_back_buffer.was_dirty = self.dirty_bits[set][replaced_block] == 1
@@ -156,8 +156,8 @@ class Cache:
         return replaced_block
 
     def read(self, address):
-        tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
-        set = tag & (self.size["sets"] - 1)
+        tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
         for block in range(self.size["blocks_per_set"]):
             if self.tags[set, block] == tag:
                 block_data = []
@@ -184,8 +184,8 @@ class Cache:
 
     def is_in_cache(self, address):
         available = False
-        tag = (address >> int(math.log2(MemorySettings.num_words_per_block)))
-        set = tag & (self.size["sets"] - 1)
+        tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
         for block in range(self.size["blocks_per_set"]):
             if self.valid_bits[set, block] == 1 and self.tags[set, block] == tag:
                 available = True
@@ -330,3 +330,16 @@ class Memory:
 
     def is_data_ready(self):
         return self.data_ready
+
+    def get_address_breakup_fields(self, byte_address):
+        tag_bits, index_bits, block_offset_bits = self.get_address_breakup_bits()
+        tag = byte_address >> (index_bits + block_offset_bits + 2)
+        index = (byte_address >> (block_offset_bits + 2)) & ((2**index_bits)-1)
+        block_offset = (byte_address >> 2) & ((2**block_offset_bits)-1)
+        return str(tag), str(index), str(block_offset)
+
+    def get_address_breakup_bits(self):
+        index_bits = int(math.log2(MemorySettings.num_sets))
+        tag_bits = 32 - (index_bits + 2) - int(math.log2(MemorySettings.num_words_per_block))
+        block_offset_bits = int(math.log2(MemorySettings.num_words_per_block))
+        return tag_bits, index_bits, block_offset_bits

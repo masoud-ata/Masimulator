@@ -45,6 +45,7 @@ class MachineCodeConst:
     INSTR_SRA = 'sra'
     INSTR_OR = 'or'
     INSTR_AND = 'and'
+    INSTR_MUL = 'mul'
 
     # All reserved opcodes
     ALL_INSTR = [INSTR_LUI, INSTR_AUIPC, INSTR_JAL,
@@ -57,7 +58,8 @@ class MachineCodeConst:
                  INSTR_SRLI, INSTR_SRAI, INSTR_ADD,
                  INSTR_SUB, INSTR_SLL, INSTR_SLT,
                  INSTR_SLTU, INSTR_XOR, INSTR_SRL,
-                 INSTR_SRA, INSTR_OR, INSTR_AND
+                 INSTR_SRA, INSTR_OR, INSTR_AND,
+                 INSTR_MUL
                  ]
     # All instruction in a type
     INSTR_TYPE_U = [INSTR_LUI, INSTR_AUIPC]
@@ -72,7 +74,8 @@ class MachineCodeConst:
                     INSTR_LH, INSTR_LBU, INSTR_LHU]
     INSTR_TYPE_R = [INSTR_ADD, INSTR_SUB, INSTR_SLL,
                     INSTR_SLT, INSTR_SLTU, INSTR_XOR,
-                    INSTR_SRL, INSTR_SRA, INSTR_OR, INSTR_AND]
+                    INSTR_SRL, INSTR_SRA, INSTR_OR, INSTR_AND,
+                    INSTR_MUL]
 
     # Binary Opcodes
     BOP_LUI = '0110111'
@@ -105,7 +108,8 @@ class MachineCodeConst:
                         INSTR_SLLI, INSTR_SRLI, INSTR_SRAI]
     INSTR_BOP_ARITH = [INSTR_ADD, INSTR_SUB, INSTR_SLL,
                        INSTR_SLT, INSTR_SLTU, INSTR_XOR,
-                       INSTR_SRL, INSTR_SRA, INSTR_OR, INSTR_AND]
+                       INSTR_SRL, INSTR_SRA, INSTR_OR, INSTR_AND,
+                       INSTR_MUL]
 
     # FUNCT for each instruction type
     FUNCT3_ARITHI = {
@@ -142,7 +146,8 @@ class MachineCodeConst:
         INSTR_SRL: '101',
         INSTR_SRA: '101',
         INSTR_OR: '110',
-        INSTR_AND: '111'
+        INSTR_AND: '111',
+        INSTR_MUL: '000'
     }
 
     FUNCT7_ARITH = {
@@ -155,7 +160,8 @@ class MachineCodeConst:
         INSTR_SRL: '0000000',
         INSTR_SRA: '0100000',
         INSTR_OR: '0000000',
-        INSTR_AND: '0000000'
+        INSTR_AND: '0000000',
+        INSTR_MUL: '0000001'
     }
 
     FUNCT3_STORE = {

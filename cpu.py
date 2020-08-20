@@ -15,6 +15,7 @@ ALU_RIGHT = 7
 ALU_SLL = 8
 ALU_SRL = 9
 ALU_SRA = 10
+ALU_MUL = 11
 
 LUI = 0b0110111
 R_FORMAT = 0b0110011
@@ -342,6 +343,8 @@ class CPU:
                 self.state.signals.id_signals.control_alu_op = ALU_SRL
             elif funct3 == 0b101 and funct7 == 0b0100000:
                 self.state.signals.id_signals.control_alu_op = ALU_SRA
+            if funct3 == 0b000 and funct7 == 0b0000001:
+                self.state.signals.id_signals.control_alu_op = ALU_MUL
             self.state.signals.id_signals.control_reg_write = 1
         elif opcode == I_FORMAT:
             if funct3 == 0b000:
@@ -438,6 +441,8 @@ class CPU:
         elif control == ALU_SRA:
             shift_amount = right & 0x1f
             ex_alu_result = to_int32(left >> shift_amount)
+        if control == ALU_MUL:
+            ex_alu_result = to_int32(left * right)
         return ex_alu_result
 
     def _ex_forward_stuff(self):

@@ -1,0 +1,14 @@
+    addi x3, x0, 100
+    nop
+    nop
+LOOP:
+    beq x3, x1, DONE            # if counter == loop limit then done!
+    addi x1, x1, 4              # counter++
+    sw x1, 0(x1)
+    beq x0, x0, LOOP            # jump
+DONE:
+    nop
+    nop
+    nop
+    nop
+    nop
