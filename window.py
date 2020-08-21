@@ -302,7 +302,7 @@ class Screen:
             layout.pack(fill="both")
 
     def _address_breakup_visual_setup(self, table):
-        tag_bits, index_bits, block_offset_bits = self.risc_v.state.data_memory_system.get_address_breakup_bits()
+        tag_bits, index_bits, block_offset_bits = self.risc_v.state.data_memory_system.get_address_breakup_num_bits()
 
         address_breakup_pane = ttk.Panedwindow(table, orient=VERTICAL, width=800, height=50)
         address_breakup_pane.grid(row=0, column=0, columnspan=10, sticky=W)
@@ -445,14 +445,19 @@ class Screen:
         self.icon_finish = PhotoImage(file=r"images/icon_finish.png")
         self.icon_reset = PhotoImage(file=r"images/icon_reset.png")
 
-        self.step_button = Button(buttons_pane, text="(F1)", command=cpu_step, image=self.icon_step, compound=LEFT)
-        self.step_button.grid(row=0, column=0, sticky=W)
+        step_button = Button(buttons_pane, text="(F1)", command=cpu_step, image=self.icon_step, compound=LEFT)
+        step_button.grid(row=0, column=0, sticky=W)
+        from tooltip import ToolTip
+        ToolTip(step_button, text="Step")
         back_button = Button(buttons_pane, text="(F2)", command=cpu_back, image=self.icon_backstep, compound=LEFT)
         back_button.grid(row=0, column=1, sticky=W)
-        reset_button = Button(buttons_pane, text="(F3)", command=cpu_execute_all, image=self.icon_finish, compound=LEFT)
-        reset_button.grid(row=0, column=2, sticky=W)
+        ToolTip(back_button, text="Backstep")
+        execute_all_button = Button(buttons_pane, text="(F3)", command=cpu_execute_all, image=self.icon_finish, compound=LEFT)
+        execute_all_button.grid(row=0, column=2, sticky=W)
+        ToolTip(execute_all_button, text="Execute all")
         reset_button = Button(buttons_pane, text="(F4)", command=cpu_reset, image=self.icon_reset, compound=LEFT)
         reset_button.grid(row=0, column=3, sticky=W)
+        ToolTip(reset_button, text="Reset")
 
     def _highlight_syntax(self):
         for tag in self.editor_text.tag_names():

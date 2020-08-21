@@ -332,13 +332,13 @@ class Memory:
         return self.data_ready
 
     def get_address_breakup_fields(self, byte_address):
-        tag_bits, index_bits, block_offset_bits = self.get_address_breakup_bits()
+        tag_bits, index_bits, block_offset_bits = self.get_address_breakup_num_bits()
         tag = byte_address >> (index_bits + block_offset_bits + 2)
         index = (byte_address >> (block_offset_bits + 2)) & ((2**index_bits)-1)
         block_offset = (byte_address >> 2) & ((2**block_offset_bits)-1)
         return str(tag), str(index), str(block_offset)
 
-    def get_address_breakup_bits(self):
+    def get_address_breakup_num_bits(self):
         index_bits = int(math.log2(MemorySettings.num_sets))
         tag_bits = 32 - (index_bits + 2) - int(math.log2(MemorySettings.num_words_per_block))
         block_offset_bits = int(math.log2(MemorySettings.num_words_per_block))
