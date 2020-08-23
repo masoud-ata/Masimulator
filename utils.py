@@ -1,3 +1,5 @@
+import math
+
 from disassembler import Instruction
 
 
@@ -35,3 +37,7 @@ to_uint8, to_int8, to_uint16, to_int16, to_uint32, to_int32, to_uint64, to_int64
     lambda v: __correct(v, 64, False),
     lambda v: __correct(v, 64, True)
 )
+
+
+def round_down_to_power_of_two(n):
+    return pow(2, int(math.floor(math.log2(n))))

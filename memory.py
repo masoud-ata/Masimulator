@@ -1,4 +1,5 @@
 import math
+from utils import round_down_to_power_of_two
 
 import numpy as np
 from random import randrange
@@ -40,7 +41,6 @@ class Cache:
         self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
         self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
         self.replace_bits = np.full((sets, blocks_per_set), MemorySettings.num_blocks_per_set - 1, dtype=np.int)
-        self.size = {"sets": sets, "blocks_per_set": blocks_per_set, "words_per_block": words_per_block}
         self.book_keeping_read_word = -1
         self.book_keeping_read_set = 0
         self.book_keeping_read_block = 0
@@ -54,6 +54,9 @@ class Cache:
         self.write_back_buffer = Cache.OldBlock()
 
     def resize(self, sets=1, blocks_per_set=1, words_per_block=1):
+        sets = round_down_to_power_of_two(sets)
+        blocks_per_set = round_down_to_power_of_two(blocks_per_set)
+        words_per_block = round_down_to_power_of_two(words_per_block)
         self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
         self.tags = np.zeros((sets, blocks_per_set), dtype=np.int)
         self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
@@ -61,12 +64,11 @@ class Cache:
         MemorySettings.num_sets = sets
         MemorySettings.num_blocks_per_set = blocks_per_set
         MemorySettings.num_words_per_block = words_per_block
-        self.size = {"sets": sets, "blocks_per_set": blocks_per_set, "words_per_block": words_per_block}
 
     def modify(self, address, data, word_index):
         tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
-        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
-        for block in range(self.size["blocks_per_set"]):
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
+        for block in range(MemorySettings.num_blocks_per_set):
             if self.valid_bits[set, block] == 1 and self.tags[set, block] == tag:
                 for word in range(MemorySettings.num_words_per_block):
                     self.contents[set, block, word] = data[word]
@@ -88,8 +90,8 @@ class Cache:
 
     def place(self, address, data):
         tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
-        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
-        for block in range(self.size["blocks_per_set"]):
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
+        for block in range(MemorySettings.num_blocks_per_set):
             if self.valid_bits[set][block] == 0:
                 for word in range(MemorySettings.num_words_per_block):
                     self.contents[set, block, word] = data[word]
@@ -112,7 +114,7 @@ class Cache:
 
     def replace(self, address, data):
         tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
-        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
         replaced_block = self._find_a_replacement_block(set)
 
         self.write_back_buffer.was_dirty = self.dirty_bits[set][replaced_block] == 1
@@ -136,7 +138,7 @@ class Cache:
     def _find_a_replacement_block(self, set):
         replaced_block = 0
         if MemorySettings.cache_replacement_policy == "Random":
-            replaced_block = randrange(self.size["blocks_per_set"])
+            replaced_block = randrange(MemorySettings.num_blocks_per_set)
         elif MemorySettings.cache_replacement_policy == "FIFO":
             for block in range(MemorySettings.num_blocks_per_set):
                 if self.replace_bits[set][block] == 0:
@@ -157,8 +159,8 @@ class Cache:
 
     def read(self, address):
         tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
-        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
-        for block in range(self.size["blocks_per_set"]):
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
+        for block in range(MemorySettings.num_blocks_per_set):
             if self.tags[set, block] == tag:
                 block_data = []
                 for word in range(MemorySettings.num_words_per_block):
@@ -175,8 +177,8 @@ class Cache:
 
     def set_has_empty_block(self, address):
         has_empty = False
-        set = (address >> (MemorySettings.num_words_per_block - 1)) & (self.size["sets"] - 1)
-        for block in range(self.size["blocks_per_set"]):
+        set = (address >> (MemorySettings.num_words_per_block - 1)) & (MemorySettings.num_sets - 1)
+        for block in range(MemorySettings.num_blocks_per_set):
             if self.valid_bits[set, block] == 0:
                 has_empty = True
                 break
@@ -185,8 +187,8 @@ class Cache:
     def is_in_cache(self, address):
         available = False
         tag = (address >> int(math.log2(MemorySettings.num_sets)) + int(math.log2(MemorySettings.num_words_per_block)))
-        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (self.size["sets"] - 1)
-        for block in range(self.size["blocks_per_set"]):
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
+        for block in range(MemorySettings.num_blocks_per_set):
             if self.valid_bits[set, block] == 1 and self.tags[set, block] == tag:
                 available = True
                 break
@@ -195,7 +197,7 @@ class Cache:
 
 class Memory:
     def __init__(self):
-        self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles + MemorySettings.word_transfer_cycles * MemorySettings.num_words_per_block
+        self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles
         self.wait_cycles = self.total_memory_penalty_cycles
         global g_memory
         for word in range(len(g_memory)):
@@ -257,6 +259,9 @@ class Memory:
                     self.data_ready = False
                     self.is_writing_to_mem = True
                     self.cache.write_back_buffer.was_dirty = False
+            self.cache.read(self.block_address)
+            word_index = self.word_address & (MemorySettings.num_words_per_block - 1)
+            self.cache.book_keeping_read_word = word_index
 
     def _handle_write(self):
         if not MemorySettings.cache_active:
@@ -343,3 +348,9 @@ class Memory:
         tag_bits = 32 - (index_bits + 2) - int(math.log2(MemorySettings.num_words_per_block))
         block_offset_bits = int(math.log2(MemorySettings.num_words_per_block))
         return tag_bits, index_bits, block_offset_bits
+
+    def update_penalty(self):
+        if MemorySettings.cache_active:
+            self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles + MemorySettings.word_transfer_cycles * MemorySettings.num_words_per_block
+        else:
+            self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles

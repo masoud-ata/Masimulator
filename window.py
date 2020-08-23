@@ -192,14 +192,14 @@ class Screen:
         self.cache_dirty_bits = []
         self.cache_replace_bits = []
         self.cache_word_lables = []
-        for set in range(self.risc_v.state.data_memory_system.cache.size["sets"]):
+        for set in range(MemorySettings.num_sets):
             s = []
             s_t = []
             s_v = []
             s_d = []
             s_r = []
             s_l = []
-            for block in range(self.risc_v.state.data_memory_system.cache.size["blocks_per_set"]):
+            for block in range(MemorySettings.num_blocks_per_set):
                 b = []
                 s.append(b)
                 s_t.append(StringVar())
@@ -208,7 +208,7 @@ class Screen:
                 s_r.append(StringVar())
                 b_l = []
                 s_l.append(b_l)
-                for word in range(self.risc_v.state.data_memory_system.cache.size["words_per_block"]):
+                for word in range(MemorySettings.num_words_per_block):
                     b.append(StringVar())
                     b_l.append(Label())
             self.cache_values.append(s)
@@ -219,31 +219,38 @@ class Screen:
             self.cache_word_lables.append(s_l)
 
     def apply_memory_setings_callback(self):
+        MemorySettings.cache_active = self.cache_is_active.get()
         MemorySettings.cache_replacement_policy = self.cache_replacement_selector.get()
         num_sets = 1
         num_blocks_per_set = 1
         num_words_per_block = 1
+        memory_wait_cycles = 0
+        word_transfer_cycles = 0
         try:
             num_sets = int(self.cache_num_sets_entry.get())
             num_blocks_per_set = int(self.cache_num_blocks_entry.get())
             num_words_per_block = int(self.cache_num_words_entry.get())
-            MemorySettings.memory_wait_cycles = int(self.memory_wait_cycles_entry.get())
-            MemorySettings.word_transfer_cycles = int(self.memory_word_transfer_cycles_entry.get())
+            memory_wait_cycles = int(self.memory_wait_cycles_entry.get())
+            word_transfer_cycles = int(self.memory_word_transfer_cycles_entry.get())
         except ValueError:
             return
-        if num_sets > 0 and num_blocks_per_set > 0 and num_words_per_block > 0:
-            self.risc_v.state.data_memory_system.cache.resize(num_sets, num_blocks_per_set, num_words_per_block)
-            self._cache_visual_init()
+        else:
+            if num_sets > 0 and num_blocks_per_set > 0 and num_words_per_block > 0:
+                self.risc_v.state.data_memory_system.cache.resize(num_sets, num_blocks_per_set, num_words_per_block)
+                self._cache_visual_init()
+                self.cache_visual_pane.destroy()
+                self._memory_window_visual_setup()
+            if memory_wait_cycles >= 0 and word_transfer_cycles >= 0:
+                MemorySettings.memory_wait_cycles = memory_wait_cycles
+                MemorySettings.word_transfer_cycles = word_transfer_cycles
+                self.risc_v.state.data_memory_system.update_penalty()
             self.reset_callback()
-            self.cache_visual_pane.destroy()
-            self._memory_window_visual_setup()
-            self.refresh_cache_window()
 
     def _memory_window_config_setup(self):
         cache_config_pane = ttk.Panedwindow(self.memory_window, orient=VERTICAL, width=100, height=100)
         cache_config_pane.place(x=10, y=10)
 
-        c = Checkbutton(cache_config_pane, text="activate cache", variable=self.cache_is_active, command=self.toggle_cache_active)
+        c = Checkbutton(cache_config_pane, text="activate cache", variable=self.cache_is_active)
         c.grid(row=0, column=0, sticky=W)
 
         l = Label(cache_config_pane, text="number of sets")
@@ -341,16 +348,14 @@ class Screen:
         tag_width = 7
         word_width = 13
 
-        cache_size = self.risc_v.state.data_memory_system.cache.size
-
         set_title = Label(table, text="Set", width=set_width, fg="black")
         set_title.grid(row=1, column=0, sticky=E, padx=3, pady=3)
 
-        for set in range(cache_size["sets"]):
+        for set in range(MemorySettings.num_sets):
             col = 0
             set_num = Label(table, text=set, width=set_width, fg="blue")
             set_num.grid(row=set + 2, column=col, sticky=E, padx=3, pady=3)
-            for block in range(cache_size["blocks_per_set"]):
+            for block in range(MemorySettings.num_blocks_per_set):
                 col = col + 1
                 if set == 0:
                     dirt_title = Label(table, text="D", width=dirty_width, fg="black")
@@ -380,7 +385,7 @@ class Screen:
                 cache_tag = Label(table, textvariable=self.cache_tags[set][block], width=tag_width, bg="white",
                                   fg="black")
                 cache_tag.grid(row=set + 2, column=col, sticky="nsew", padx=3, pady=3)
-                for word in range(self.risc_v.state.data_memory_system.cache.size["words_per_block"]):
+                for word in range(MemorySettings.num_words_per_block):
                     col = col + 1
                     if set == 0:
                         word_title = Label(table, text="Word " + str(word), width=word_width, fg="black")
@@ -650,6 +655,13 @@ class Screen:
             self.execute_all_callback()
         elif key == "F4":
             self.reset_callback()
+        elif key == "F6":
+            self.populate_data_memory()
+
+    def populate_data_memory(self):
+        g_memory.clear()
+        g_memory.extend(range(1, MEMORY_SIZE))
+        self.refresh_data_memory_box()
 
     def refresh_pipeline_box(self):
         self.pipe_graphics.refresh_pipeline(self.risc_v)
@@ -893,13 +905,13 @@ class Screen:
                 self.cache_requested_address_index.set(index)
                 self.cache_requested_address_block_offset.set(block_offset)
                 self.cache_requested_address.set(st)
-            for set in range(cache.size["sets"]):
-                for block in range(cache.size["blocks_per_set"]):
+            for set in range(MemorySettings.num_sets):
+                for block in range(MemorySettings.num_blocks_per_set):
                     self.cache_tags[set][block].set(cache.tags[set, block])
                     self.cache_valid_bits[set][block].set(cache.valid_bits[set, block])
                     self.cache_dirty_bits[set][block].set(cache.dirty_bits[set, block])
                     self.cache_replace_bits[set][block].set(cache.replace_bits[set, block])
-                    for word in range(cache.size["words_per_block"]):
+                    for word in range(MemorySettings.num_words_per_block):
                         self.cache_values[set][block][word].set(cache.contents[set, block, word])
                         color = "white"
                         if cache.book_keeping_read_set == set and cache.book_keeping_read_block == block and cache.book_keeping_read_word == word:
@@ -912,6 +924,3 @@ class Screen:
                                     color = "yellow"
                         if self.memory_window_open:
                             self.cache_word_lables[set][block][word].config(bg=color, fg="black")
-
-    def toggle_cache_active(self):
-        MemorySettings.cache_active = self.cache_is_active.get()

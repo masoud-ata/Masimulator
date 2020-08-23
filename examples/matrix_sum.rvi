@@ -1,0 +1,59 @@
+    addi x10, x0, 20                    # N (matrix is NxN) 
+    jal x1, SUM_ROW_MAJOR               # Call function
+    nop
+    jal x0, DONE                        # Finish
+
+                                       
+SUM_ROW_MAJOR:                          # Matrix sum using row major algorithm
+    addi x13, x0, 0                     # sum = 0
+    addi x3, x0, 0                      # row = 0
+    addi x4, x0, 0                      # col = 0
+    nop
+LOOP_ROW:                               # for (row = 0; row < N; row++)
+    beq x3, x10, LOOP_ROW_DONE          # {
+    addi x4, x0, 0
+    nop
+    nop
+LOOP_COL:
+    beq x4, x10, LOOP_COL_DONE          #     for (col = 0; col < N; col++)
+    mul x11, x3, x10                    #     {
+    add x11, x11, x4                    #         index = row * N + col
+    slli x11, x11, 2                    #         index = 4 * index (each value is 4 bytes)
+    lw x12, 0(x11)                      #         temp = Matrix[row][col]
+    add x13, x12, x13                   #         sum += temp
+    addi x4, x4, 1                      #         col++
+    beq x0, x0, LOOP_COL                #     }
+LOOP_COL_DONE:
+    addi x3, x3, 1                     
+    beq x0, x0, LOOP_ROW                # }
+LOOP_ROW_DONE:
+    ret                                 # return
+
+
+SUM_COL_MAJOR:                          # Matrix sum using col major algorithm
+    addi x13, x0, 0                     # sum = 0
+    addi x3, x0, 0                      # row = 0
+    addi x4, x0, 0                      # col = 0
+    nop
+LOOP_COL2:                              # for (col = 0; col < N; col++)
+    beq x4, x10, LOOP_COL_DONE2         # {
+    addi x3, x0, 0
+    nop
+    nop
+LOOP_ROW2:
+    beq x3, x10, LOOP_ROW_DONE2         #     for (row = 0; row < N; row++)
+    mul x11, x3, x10                    #     {
+    add x11, x11, x4                    #         index = row * N + col
+    slli x11, x11, 2                    #         index = 4 * index (each value is 4 bytes)
+    lw x12, 0(x11)                      #         temp = Matrix[row][col]
+    add x13, x12, x13                   #         sum += temp
+    addi x3, x3, 1                      #         row++
+    beq x0, x0, LOOP_ROW2               #     }
+LOOP_ROW_DONE2:
+    addi x4, x4, 1                     
+    beq x0, x0, LOOP_COL2               # }
+LOOP_COL_DONE2:
+    ret 
+
+DONE:
+    nop
