@@ -1,4 +1,4 @@
 from window import Screen
 
 
-screen = Screen("1400", "1100")
+screen = Screen("1400", "1010")

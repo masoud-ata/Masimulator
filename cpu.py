@@ -195,6 +195,9 @@ class CPU:
         self.trace = []
         self.state.reset()
 
+    def clear_trace(self):
+        self.trace = []
+
     def back_tick(self):
         if len(self.trace) != 0:
             self.state.data_memory_system.back_tick()
@@ -205,12 +208,13 @@ class CPU:
     def is_finished(self):
         return self.state.pc // 4 == len(self.memory) - 1
 
-    def tick(self):
+    def tick(self, trace=True):
         if self.is_finished():
             return
 
         self.state.cycles_executed = self.state.cycles_executed + 1
-        self.trace.append(copy.deepcopy(self.state))
+        if trace:
+            self.trace.append(copy.deepcopy(self.state))
 
         if not self.state.data_memory_system.is_processing():
             self._register_mem_wb()
@@ -270,9 +274,11 @@ class CPU:
             if self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.WORD:
                 self.state.signals.mem_signals.mem_data = mem_data
             elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.BYTE_SIGNED:
-                sign = (mem_data >> 7 & 0x1)
-                byte_sign_extended = (mem_data & 0x000000ff) | (sign * 0xffffff00)
-                self.state.signals.mem_signals.mem_data = to_int32(byte_sign_extended)
+                byte_offset = self.state.signals.mem_signals.address & 0x3
+                requested_byte = (mem_data >> (byte_offset * 8)) & 0xff
+                sign = (requested_byte >> 7)
+                requested_byte_sign_extended = requested_byte | (sign * 0xffffff00)
+                self.state.signals.mem_signals.mem_data = to_int32(requested_byte_sign_extended)
             elif self.state.pipe.ex_mem.control_mem_read_mode == MemoryReadMode.HALF_SIGNED:
                 sign = (mem_data >> 15 & 0x1)
                 halfword_sign_extended = (mem_data & 0x0000ffff) | (sign * 0xffff0000)

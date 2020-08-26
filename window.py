@@ -657,6 +657,8 @@ class Screen:
             self.reset_callback()
         elif key == "F6":
             self.populate_data_memory()
+        elif key == "F9":
+            self.execute_all_no_trace_callback()
 
     def populate_data_memory(self):
         g_memory.clear()
@@ -849,6 +851,21 @@ class Screen:
                 self.backstep_callback()
                 self.step_callback()
                 return
+
+    def execute_all_no_trace_callback(self):
+        self.risc_v.clear_trace()
+        for i in range(500000):
+            if not self.risc_v.is_finished():
+                self.risc_v.tick(trace=False)
+        data_mem_old = g_memory.copy()
+        d_mem_yview_old = self.data_memory_box.yview()[0]
+        p_mem_yview_old = self.program_memory_box.yview()[0]
+        self.refresh_program_memory_box(p_mem_yview_old)
+        self.refresh_register_file_box()
+        self.refresh_colored_data_memory_box(data_mem_old, d_mem_yview_old)
+        self.refresh_pipeline_box()
+        self.refresh_statistics()
+        self.refresh_cache_window()
 
     def toggle_forwarding_callback(self):
         self.pipe_graphics.toggle_forwarding(self.forwarding_enabled.get())
