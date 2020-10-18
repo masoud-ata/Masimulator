@@ -197,7 +197,7 @@ class Cache:
 
 class Memory:
     def __init__(self):
-        self.total_memory_penalty_cycles = MemorySettings.memory_wait_cycles
+        self.update_penalty()
         self.wait_cycles = self.total_memory_penalty_cycles
         global g_memory
         for word in range(len(g_memory)):

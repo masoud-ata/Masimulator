@@ -1,4 +1,4 @@
-    addi x10, x0, 20                    # N (matrix is NxN) 
+    addi x10, x0, 20                    # N (matrix is NxN)
     jal x1, SUM_ROW_MAJOR               # Call function
     nop
     jal x0, DONE                        # Finish

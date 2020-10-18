@@ -406,6 +406,8 @@ class Screen:
 
     def _setup_memory_window(self):
         if self.memory_window_open:
+            self.memory_window.lift()
+            self.memory_window.focus_force()
             return
         self.memory_window_open = True
         self.memory_window = Toplevel(self.pipeline_window)

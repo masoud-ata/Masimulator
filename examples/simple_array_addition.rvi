@@ -1,0 +1,13 @@
+    addi x5, x0, 0        # Array a address
+    addi x6, x0, 32       # Array b address
+    addi x11, x0, 8       # Loop limit N
+    addi x10, x0, 0       # Loop counter
+Loop:                     # for (i = 0; i < N; i++)
+    addi x10, x10, 1      # {
+    lw x1, 0(x5)
+    lw x2, 0(x6)
+    add x3, x1, x2
+    sw x3, 0(x5)          #     a[i] = a[i] + b[i]
+    addi x5, x5, 4
+    addi x6, x6, 4
+    bne x10, x11, Loop    # }

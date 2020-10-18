@@ -23,7 +23,7 @@ class PipelineGraphics:
         self._place_pipe_images()
 
         pipe_distance_x = 250
-        self._place_pipe_instruction_labels(self.pipe_pane, x=150, y=560, distance=pipe_distance_x)
+        self._place_pipe_instruction_labels(self.pipe_pane, x=150, y=540, distance=pipe_distance_x)
 
         self._setup_pipeline_if_stage_labels()
         self._setup_pipeline_id_stage_labels()
@@ -279,7 +279,7 @@ class PipelineGraphics:
 
         self.id_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=500, y=490)
+        label.place(x=500, y=460)
 
     def _setup_pipeline_ex_stage_labels(self):
         self.ex_pc_plus_4 = StringVar()
@@ -348,7 +348,7 @@ class PipelineGraphics:
 
         self.ex_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=820, y=490)
+        label.place(x=820, y=460)
 
     def _setup_pipeline_mem_stage_labels(self):
         self.mem_pc_plus_4 = StringVar()
@@ -365,7 +365,7 @@ class PipelineGraphics:
 
         self.mem_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1030, y=490)
+        label.place(x=1030, y=460)
 
         self.mem_read = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_read, relief=FLAT, font=(g_font, g_font_size))
@@ -390,7 +390,7 @@ class PipelineGraphics:
 
         self.wb_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1115, y=490)
+        label.place(x=1115, y=460)
 
         self.wb_rf_write_data = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rf_write_data, relief=FLAT, font=(g_font, g_font_size))

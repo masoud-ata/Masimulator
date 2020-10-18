@@ -94,7 +94,7 @@ def replace_nice_looking_stores(assembly_file_text):
     lines = io.StringIO(assembly_file_text).readlines()
     lines_updated = []
     for l in lines:
-        tokens = re.findall(r"[\w']+", l)
+        tokens = re.findall(r"[-]?[\w']+", l)
         if tokens and tokens[0] == "sw":
             inst = "sw"
             rs1 = tokens[1]
@@ -110,7 +110,7 @@ def replace_nice_looking_loads(assembly_file_text):
     lines_updated = []
     load_types = ['lb', 'lh', 'lw']
     for l in lines:
-        tokens = re.findall(r"[\w']+", l)
+        tokens = re.findall(r"[-]?[\w']+", l)
         if tokens and tokens[0] in load_types:
             inst = tokens[0]
             rs1 = tokens[1]
