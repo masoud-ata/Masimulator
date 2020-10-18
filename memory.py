@@ -117,11 +117,12 @@ class Cache:
         set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
         replaced_block = self._find_a_replacement_block(set)
 
-        self.write_back_buffer.was_dirty = self.dirty_bits[set][replaced_block] == 1
+        self.write_back_buffer.was_dirty = (self.dirty_bits[set][replaced_block] == 1)
         self.write_back_buffer.data = []
         for word in range(MemorySettings.num_words_per_block):
             self.write_back_buffer.data.append(int(self.contents[set, replaced_block, word]))
-        self.write_back_buffer.address = int(self.tags[set, replaced_block]) * MemorySettings.num_words_per_block
+        index_bits = int(math.log2(MemorySettings.num_sets))
+        self.write_back_buffer.address = ((int(self.tags[set, replaced_block]) << index_bits) + set) * MemorySettings.num_words_per_block
 
         for word in range(MemorySettings.num_words_per_block):
             self.contents[set, replaced_block, word] = data[word]
