@@ -178,7 +178,7 @@ class Cache:
 
     def set_has_empty_block(self, address):
         has_empty = False
-        set = (address >> (MemorySettings.num_words_per_block - 1)) & (MemorySettings.num_sets - 1)
+        set = (address >> int(math.log2(MemorySettings.num_words_per_block))) & (MemorySettings.num_sets - 1)
         for block in range(MemorySettings.num_blocks_per_set):
             if self.valid_bits[set, block] == 0:
                 has_empty = True

@@ -20,7 +20,12 @@ class Screen:
 
         self.main_window = Tk()
 
-        nb = ttk.Notebook(self.main_window)
+        vertical_tabs = False
+        if vertical_tabs:
+            style = ttk.Style(self.main_window)
+            style.configure('lefttab.TNotebook', tabposition='wn')
+
+        nb = ttk.Notebook(self.main_window, style='lefttab.TNotebook')
         self.pipeline_window = ttk.Frame(nb)
         self.editor_window = ttk.Frame(nb)
 
@@ -536,7 +541,7 @@ class Screen:
 
     def _setup_check_buttons(self):
         check_buttons_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)
-        check_buttons_pane.place(x=0, y=80)
+        check_buttons_pane.place(x=0, y=40)
         c = Checkbutton(check_buttons_pane, text="Enable forwarding", variable=self.forwarding_enabled, command=self.toggle_forwarding_callback)
         c.grid(row=1, column=0, sticky=W)
         c = Checkbutton(check_buttons_pane, text="Enable hazard detection", variable=self.hazard_detection_enabled, command=self.toggle_hazard_detection_callback)
@@ -546,7 +551,7 @@ class Screen:
 
     def _setup_statistics_pane(self):
         statistics_pane = ttk.Panedwindow(self.pipeline_window, width=100, height=50)
-        statistics_pane.place(x=0, y=200)
+        statistics_pane.place(x=0, y=130)
         self.num_cycles = StringVar()
         self.num_cycles.set("1")
         cycle_count = Label(statistics_pane, text="Cycle count: ")
@@ -556,43 +561,43 @@ class Screen:
 
     def _setup_register_file_entries(self):
         rf_pane = ttk.Panedwindow(self.pipeline_window, orient=VERTICAL, width=200, height=100)
-        rf_pane.place(x=300, y=0)
+        rf_pane.place(x=230, y=0)
 
         l = Label(rf_pane, text="Register file")
-        l.grid(row=0, column=1, sticky=W)
+        l.grid(row=0, column=0, sticky=W)
 
-        c = Checkbutton(rf_pane, text="Show hex", variable=self.show_rf_in_hex, command=self.toggle_show_rf_in_hex_callback)
-        c.grid(row=0, column=3, sticky=W)
+        c = Checkbutton(rf_pane, text="in hex", variable=self.show_rf_in_hex, command=self.toggle_show_rf_in_hex_callback)
+        c.grid(row=1, column=0, sticky=W)
 
         entries = []
         for i in range(0, 32):
             entries.append(Entry(rf_pane, font=("Courier 10"), width=12))
-            entries[i].grid(row=int(1 + i % 16), column=1 + 2 * (i // 16), sticky=W)
+            entries[i].grid(row=int(i % 8), column=2 + 2 * (i // 8), sticky=W)
             entries[i].insert(0, 0)
             l = Label(rf_pane, text="x" + str(i))
-            l.grid(row=int(1 + i % 16), column=2 * (i // 16), sticky=W)
+            l.grid(row=int(i % 8), column=1 + 2 * (i // 8), sticky=W)
         return entries
 
     def _setup_data_mem_box(self, data_memory, data_mem_yview, data_mem_yview_tie):
         mem_pane = ttk.Panedwindow(self.pipeline_window, orient=VERTICAL, width=200, height=100)
-        mem_pane.place(x=600, y=0)
+        mem_pane.place(x=790, y=0)
 
-        c = Checkbutton(mem_pane, text="Show hex", variable=self.show_data_mem_in_hex, command=self.toggle_show_data_mem_in_hex_callback)
-        c.grid(row=0, column=1, sticky=W)
+        c = Checkbutton(mem_pane, text="in hex", variable=self.show_data_mem_in_hex, command=self.toggle_show_data_mem_in_hex_callback)
+        c.grid(row=0, column=0, sticky=W)
 
         l = Label(mem_pane, text="Address")
-        l.grid(row=1, column=0, sticky=W)
+        l.grid(row=0, column=1, sticky=W)
         l = Label(mem_pane, text="Data Memory")
-        l.grid(row=1, column=1, sticky=W)
+        l.grid(row=0, column=2, sticky=W)
 
-        mem_text = Text(mem_pane, height=20, width=12)
-        mem_text.grid(row=2, column=1, sticky=W)
+        mem_text = Text(mem_pane, height=9, width=12)
+        mem_text.grid(row=1, column=2, sticky=W)
         scrollbar = Scrollbar(mem_pane, orient=VERTICAL, command=data_mem_yview)
-        scrollbar.grid(row=2, column=2, rowspan=15, columnspan=1, sticky=NS)
+        scrollbar.grid(row=1, column=3, rowspan=15, columnspan=1, sticky=NS)
         mem_text.config(yscrollcommand=data_mem_yview_tie)
 
-        mem_addr_text = Text(mem_pane, height=20, width=6)
-        mem_addr_text.grid(row=2, column=0, sticky=W)
+        mem_addr_text = Text(mem_pane, height=9, width=6)
+        mem_addr_text.grid(row=1, column=1, sticky=W)
         mem_addr_text.config(yscrollcommand=data_mem_yview_tie)
 
         text = ""
@@ -614,20 +619,20 @@ class Screen:
 
     def _setup_program_mem_box(self, program_memory, program_mem_yview, program_mem_yview_tie):
         prog_mem_pane = ttk.Panedwindow(self.pipeline_window, orient=VERTICAL, width=200, height=100)
-        prog_mem_pane.place(x=900, y=20)
+        prog_mem_pane.place(x=1030, y=0)
 
         l = Label(prog_mem_pane, text="Address")
         l.grid(row=0, column=0, sticky=W)
         l = Label(prog_mem_pane, text="Program Memory")
         l.grid(row=0, column=1, sticky=W)
 
-        mem_text = Text(prog_mem_pane, height=20, width=20)
+        mem_text = Text(prog_mem_pane, height=9, width=20)
         mem_text.grid(row=1, column=1, sticky=W)
         scrollbar = Scrollbar(prog_mem_pane, orient=VERTICAL, command=program_mem_yview)
         scrollbar.grid(row=1, column=2, rowspan=15, columnspan=1, sticky=NS)
         mem_text.config(yscrollcommand=program_mem_yview_tie)
 
-        mem_addr_text = Text(prog_mem_pane, height=20, width=5)
+        mem_addr_text = Text(prog_mem_pane, height=9, width=5)
         mem_addr_text.grid(row=1, column=0, sticky=W)
         mem_addr_text.config(yscrollcommand=program_mem_yview_tie)
 

@@ -10,11 +10,12 @@ g_pipe_no_forward_image_file = "images/pipe_simple.png"
 g_pipe_with_forward_image_file = "images/pipe_forward.png"
 g_hazard_detected_image_file = "images/hazard_detected.png"
 
+VERTICAL_OFFSET = -65
 
 class PipelineGraphics:
     def __init__(self, master):
-        pipe_pane_x = 20
-        pipe_pane_y = 380
+        pipe_pane_x = 5
+        pipe_pane_y = 175
         pipe_pane_width = 1300
         pipe_pane_height = 800
         self.pipe_pane = ttk.Panedwindow(master, orient=VERTICAL, width=pipe_pane_width, height=pipe_pane_height)
@@ -23,7 +24,7 @@ class PipelineGraphics:
         self._place_pipe_images()
 
         pipe_distance_x = 250
-        self._place_pipe_instruction_labels(self.pipe_pane, x=150, y=540, distance=pipe_distance_x)
+        self._place_pipe_instruction_labels(self.pipe_pane, x=150, y=460, distance=pipe_distance_x)
 
         self._setup_pipeline_if_stage_labels()
         self._setup_pipeline_id_stage_labels()
@@ -209,197 +210,197 @@ class PipelineGraphics:
         self.if_pc_mux_1 = StringVar()
         self.if_pc_mux_1.set("")
         self.if_pc_mux_1_label = Label(self.pipe_pane, textvariable=self.if_pc_mux_1, relief=FLAT, font=(g_font, g_font_size))
-        self.if_pc_mux_1_label.place(x=20, y=250)
+        self.if_pc_mux_1_label.place(x=20, y=VERTICAL_OFFSET+250)
 
         self.if_pc_mux_2 = StringVar()
         self.if_pc_mux_2.set("")
         self.if_pc_mux_2_label = Label(self.pipe_pane, textvariable=self.if_pc_mux_2, relief=FLAT, font=(g_font, g_font_size))
-        self.if_pc_mux_2_label.place(x=20, y=340)
+        self.if_pc_mux_2_label.place(x=20, y=VERTICAL_OFFSET+340)
 
         self.if_pc_in = StringVar()
         self.if_pc_in.set("")
         self.if_pc_in_label = Label(self.pipe_pane, textvariable=self.if_pc_in, relief=FLAT, font=(g_font, g_font_size))
-        self.if_pc_in_label.place(x=60, y=270)
+        self.if_pc_in_label.place(x=60, y=VERTICAL_OFFSET+270)
 
         self.if_pc_out = StringVar()
         self.if_pc_out.set("")
         label = Label(self.pipe_pane, textvariable=self.if_pc_out, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=130, y=270)
+        label.place(x=130, y=VERTICAL_OFFSET+270)
 
         self.if_pc_out_plus_4 = StringVar()
         self.if_pc_out_plus_4.set("")
         label = Label(self.pipe_pane, textvariable=self.if_pc_out_plus_4, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=260, y=94)
+        label.place(x=260, y=VERTICAL_OFFSET+94)
 
         self.if_program_mem_out = StringVar()
         self. if_program_mem_out.set("")
         label = Label(self.pipe_pane, textvariable=self.if_program_mem_out, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=250, y=270)
+        label.place(x=250, y=VERTICAL_OFFSET+270)
 
     def _setup_pipeline_id_stage_labels(self):
         self.id_pc_plus_4 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_pc_plus_4, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=490, y=90)
+        label.place(x=520, y=VERTICAL_OFFSET+90)
 
         self.id_pc = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_pc, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=400, y=16)
+        label.place(x=400, y=VERTICAL_OFFSET+75)
 
         self.id_imm = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_imm, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=410, y=130)
+        label.place(x=413, y=VERTICAL_OFFSET+145)
 
         self.id_imm_to_ex = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_imm_to_ex, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=500, y=430)
+        label.place(x=500, y=VERTICAL_OFFSET+430)
 
         self.id_imm_shifted = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_imm_shifted, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=400, y=35)
+        label.place(x=400, y=VERTICAL_OFFSET+90)
 
         self.id_branch_addr = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_branch_addr, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=490, y=40)
+        label.place(x=475, y=VERTICAL_OFFSET+70)
 
         self.id_rs1 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rs1, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=430, y=160)
+        label.place(x=430, y=VERTICAL_OFFSET+159)
 
         self.id_rs2 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rs2, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=430, y=240)
+        label.place(x=430, y=VERTICAL_OFFSET+240)
 
         self.id_rf_read_1 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rf_read_1, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=530, y=160)
+        label.place(x=530, y=VERTICAL_OFFSET+160)
 
         self.id_rf_read_2 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rf_read_2, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=530, y=240)
+        label.place(x=530, y=VERTICAL_OFFSET+240)
 
         self.id_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.id_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=500, y=460)
+        label.place(x=500, y=VERTICAL_OFFSET+460)
 
     def _setup_pipeline_ex_stage_labels(self):
         self.ex_pc_plus_4 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_pc_plus_4, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=800, y=90)
+        label.place(x=800, y=VERTICAL_OFFSET+90)
 
         self.ex_rf_data1 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_rf_data1, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=640, y=155)
+        label.place(x=640, y=VERTICAL_OFFSET+155)
 
         self.ex_forward_mem_to_mux1 = StringVar()
         self.ex_forward_mem_to_mux1_label = Label(self.pipe_pane, textvariable=self.ex_forward_mem_to_mux1, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_forward_mem_to_mux1_label_pos = 640, 185
+        self.ex_forward_mem_to_mux1_label_pos = 640, VERTICAL_OFFSET+185
         self.ex_forward_mem_to_mux1_label.place(x=self.ex_forward_mem_to_mux1_label_pos[0], y=self.ex_forward_mem_to_mux1_label_pos[1])
         self.ex_forward_mem_to_mux1_label.place_forget()
 
         self.ex_forward_wb_to_mux1 = StringVar()
         self.ex_forward_wb_to_mux1_label = Label(self.pipe_pane, textvariable=self.ex_forward_wb_to_mux1, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_forward_wb_to_mux1_label_pos = 640, 210
+        self.ex_forward_wb_to_mux1_label_pos = 640, VERTICAL_OFFSET+210
         self.ex_forward_wb_to_mux1_label.place(x=self.ex_forward_wb_to_mux1_label_pos[0], y=self.ex_forward_wb_to_mux1_label_pos[1])
         self.ex_forward_wb_to_mux1_label.place_forget()
 
         self.ex_rf_data2 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_rf_data2, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=640, y=240)
+        label.place(x=640, y=VERTICAL_OFFSET+240)
 
         self.ex_imm = StringVar()
         self.ex_imm_label = Label(self.pipe_pane, textvariable=self.ex_imm, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_imm_label_no_forward_pos = 640, 270
-        self.ex_imm_label_with_forward_pos = 710, 310
+        self.ex_imm_label_no_forward_pos = 640, VERTICAL_OFFSET+270
+        self.ex_imm_label_with_forward_pos = 710, VERTICAL_OFFSET+310
         self.ex_imm_label.place(x=self.ex_imm_label_no_forward_pos[0], y=self.ex_imm_label_no_forward_pos[1])
 
         self.ex_right_forward_out = StringVar()
         self.ex_right_forward_out_label = Label(self.pipe_pane, textvariable=self.ex_right_forward_out, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_right_forward_out_label_pos = 710, 265
+        self.ex_right_forward_out_label_pos = 710, VERTICAL_OFFSET+265
         self.ex_right_forward_out_label.place(x=self.ex_right_forward_out_label_pos[0], y=self.ex_right_forward_out_label_pos[1])
         self.ex_right_forward_out_label.place_forget()
 
         self.ex_forward_mem_to_mux2 = StringVar()
         self.ex_forward_mem_to_mux2_label = Label(self.pipe_pane, textvariable=self.ex_forward_mem_to_mux2, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_forward_mem_to_mux2_label_pos = 640, 270
+        self.ex_forward_mem_to_mux2_label_pos = 640, VERTICAL_OFFSET+270
         self.ex_forward_mem_to_mux2_label.place(x=self.ex_forward_mem_to_mux2_label_pos[0], y=self.ex_forward_mem_to_mux2_label_pos[1])
         self.ex_forward_mem_to_mux2_label.place_forget()
 
         self.ex_forward_wb_to_mux2 = StringVar()
         self.ex_forward_wb_to_mux2_label = Label(self.pipe_pane, textvariable=self.ex_forward_wb_to_mux2, relief=FLAT, font=(g_font, g_font_size))
-        self.ex_forward_wb_to_mux2_label_pos = 640, 300
+        self.ex_forward_wb_to_mux2_label_pos = 640, VERTICAL_OFFSET+300
         self.ex_forward_wb_to_mux2_label.place(x=self.ex_forward_wb_to_mux2_label_pos[0], y=self.ex_forward_wb_to_mux2_label_pos[1])
         self.ex_forward_wb_to_mux2_label.place_forget()
 
         self.ex_alu_left = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_alu_left, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=770, y=186)
+        label.place(x=770, y=VERTICAL_OFFSET+186)
 
         self.ex_alu_right = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_alu_right, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=770, y=248)
+        label.place(x=770, y=VERTICAL_OFFSET+248)
 
         self.ex_alu_result = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_alu_result, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=845, y=215)
+        label.place(x=845, y=VERTICAL_OFFSET+215)
 
         self.ex_rf_data2_to_mem_stage = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_rf_data2_to_mem_stage, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=820, y=345)
+        label.place(x=820, y=VERTICAL_OFFSET+345)
 
         self.ex_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.ex_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=820, y=460)
+        label.place(x=820, y=VERTICAL_OFFSET+460)
 
     def _setup_pipeline_mem_stage_labels(self):
         self.mem_pc_plus_4 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_pc_plus_4, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1010, y=90)
+        label.place(x=1010, y=VERTICAL_OFFSET+90)
 
         self.mem_address = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_address, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=920, y=210)
+        label.place(x=920, y=VERTICAL_OFFSET+210)
 
         self.mem_write_data = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_write_data, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=920, y=345)
+        label.place(x=920, y=VERTICAL_OFFSET+345)
 
         self.mem_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1030, y=460)
+        label.place(x=1030, y=VERTICAL_OFFSET+460)
 
         self.mem_read = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_read, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1040, y=210)
+        label.place(x=1040, y=VERTICAL_OFFSET+210)
 
         self.mem_alu_result_to_wb = StringVar()
         label = Label(self.pipe_pane, textvariable=self.mem_alu_result_to_wb, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1040, y=255)
+        label.place(x=1040, y=VERTICAL_OFFSET+255)
 
     def _setup_pipeline_wb_stage_labels(self):
         self.wb_pc_plus_4 = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_pc_plus_4, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1130, y=180)
+        label.place(x=1130, y=VERTICAL_OFFSET+180)
 
         self.wb_memory_data = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_memory_data, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1115, y=215)
+        label.place(x=1115, y=VERTICAL_OFFSET+215)
 
         self.wb_alu_result = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_alu_result, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1115, y=255)
+        label.place(x=1115, y=VERTICAL_OFFSET+255)
 
         self.wb_rd = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rd, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1115, y=460)
+        label.place(x=1115, y=VERTICAL_OFFSET+460)
 
         self.wb_rf_write_data = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rf_write_data, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=1180, y=229)
+        label.place(x=1180, y=VERTICAL_OFFSET+229)
 
         self.wb_rf_write_data_shown_at_id = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rf_write_data_shown_at_id, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=420, y=280)
+        label.place(x=420, y=VERTICAL_OFFSET+280)
 
         self.wb_rd_shown_at_id = StringVar()
         label = Label(self.pipe_pane, textvariable=self.wb_rd_shown_at_id, relief=FLAT, font=(g_font, g_font_size))
-        label.place(x=430, y=310)
+        label.place(x=430, y=VERTICAL_OFFSET+310)
