@@ -1,15 +1,43 @@
-from tkinter import *
-from tkinter import ttk
-from cpu import *
-from pipeline_visual import PipelineGraphics
-import tkinter as tk
-from tkinter import filedialog, font
-from assembler.rvi import assemble
-from assembler.lib.cprint import cprint as cp
-from disassembler import *
-import webbrowser
 import io
+import webbrowser
 from functools import partial
+from tkinter import (
+    DISABLED,
+    END,
+    GROOVE,
+    INSERT,
+    LEFT,
+    NORMAL,
+    NS,
+    SOLID,
+    VERTICAL,
+    BooleanVar,
+    Button,
+    Checkbutton,
+    E,
+    Entry,
+    Frame,
+    IntVar,
+    Label,
+    Menu,
+    PhotoImage,
+    Scrollbar,
+    StringVar,
+    Text,
+    Tk,
+    Toplevel,
+    W,
+    filedialog,
+    font,
+    mainloop,
+    ttk,
+)
+
+from assembler.lib.cprint import cprint as cp
+from assembler.rvi import assemble
+from cpu import *
+from disassembler import *
+from pipeline_visual import PipelineGraphics
 from scrolled_lined_text import ScrolledLinedText
 
 
@@ -172,7 +200,7 @@ class Screen:
         link1 = Label(about_window, text="Masimulator on GitHub", fg="blue", cursor="hand2")
         link1.pack()
         link1.bind("<Button-1>", lambda e: callback("https://github.com/masoud-ata/Masimulator"))
-        f = tk.font.Font(link1, link1.cget("font"))
+        f = font.Font(link1, link1.cget("font"))
         f.configure(underline=True)
         link1.configure(font=f)
 
@@ -181,7 +209,7 @@ class Screen:
         link2 = Label(about_window, text="RISCV-RV32I-Assembler on GitHub", fg="blue", cursor="hand2")
         link2.pack()
         link2.bind("<Button-1>", lambda e: callback("https://github.com/metastableB/RISCV-RV32I-Assembler"))
-        f = tk.font.Font(link2, link2.cget("font"))
+        f = font.Font(link2, link2.cget("font"))
         f.configure(underline=True)
         link2.configure(font=f)
 
@@ -437,6 +465,8 @@ class Screen:
         file_menu.add_command(label='Save       Ctrl+S', command=self._save_assembly_file)
         file_menu.add_command(label='Save As ...', command=self._save_as_file_dialog)
         file_menu.add_command(label='Assemble', command=self._assemble_editor_contetnts)
+        file_menu.add_command(label='Dump Register and Memory', command=self._dump_reg_and_mem)
+
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=master.quit)
 
@@ -524,6 +554,14 @@ class Screen:
         with open(temp_filename, "w") as f:
             f.write(self.editor_text.get("1.0", END)[:-1])
         self._assemble_file(temp_filename)
+
+    def _dump_reg_and_mem(self):
+        with open('dumps/register_file.txt', 'w') as out:
+            print("\n".join([f'{x:032b}' for x in self.risc_v.state.register_file]), file=out)            
+
+        global g_memory
+        with open('dumps/memory.txt', 'w') as out:
+            print("\n".join([f'{x:032b}' for x in g_memory]), file=out)    
 
     def _assemble_file(self, filename):
         try:

@@ -1,8 +1,8 @@
-from disassembler import Instruction, BranchTypes
-from utils import *
-from memory import *
 import copy
-import numpy
+
+from disassembler import BranchTypes, Instruction
+from memory import *
+from utils import *
 
 ALU_AND = 0
 ALU_OR = 1
