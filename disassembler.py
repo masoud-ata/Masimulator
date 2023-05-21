@@ -1,3 +1,5 @@
+from utils import negative_fix
+
 g_instruction_set = ('nop', 'lb', 'lh', 'lw', 'lui', 'sw', 'addi', 'add', 'sub', 'and',
             'or', 'xor', 'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu', 'slt', 'sltu', 'jal', 'ret', 'sll', 'srl', 'sra',
             'andi', 'ori', 'xori', 'slli', 'srli', 'srai', 'mul')
@@ -15,9 +17,6 @@ class BranchTypes:
 class Instruction:
     def __init__(self, inst):
         self.word = inst
-
-    def _negative_fix(self, imm, length):
-        return imm - (imm >> length - 1) * (2 ** length)
 
     def opcode(self):
         return self.word & 0b111_1111
@@ -39,18 +38,18 @@ class Instruction:
 
     def imm_i(self):
         imm = (self.word >> 20) & 0b1111_1111_1111
-        imm = self._negative_fix(imm, 12)
+        imm = negative_fix(imm, 12)
         return imm
 
     def imm_s(self):
         imm = (self.funct7() << 5) | self.rd()
-        imm = self._negative_fix(imm, 12)
+        imm = negative_fix(imm, 12)
         return imm
 
     def imm_sb(self):
         imm = ((self.funct7() >> 6) << 11) | ((self.rd() & 0b1) << 10) | ((self.funct7() & 0b0111111) << 4) | (
                     self.rd() >> 1)
-        imm = self._negative_fix(imm, 12)
+        imm = negative_fix(imm, 12)
         return imm
 
     def imm_u(self):
@@ -64,7 +63,7 @@ class Instruction:
         bit_10 = ((imm_raw >> 8) & 1) << 10
         bits_9_to_0 = ((imm_raw >> 9) & 0x3ff)
         imm = (bit_19 | bits_18_to_11 | bit_10 | bits_9_to_0)
-        imm = self._negative_fix(imm, 20)
+        imm = negative_fix(imm, 20)
         return imm
 
     def nop(self):
