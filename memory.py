@@ -36,11 +36,11 @@ class Cache:
             self.was_dirty = False
 
     def __init__(self, sets=1, blocks_per_set=1, words_per_block=1):
-        self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
-        self.tags = np.zeros((sets, blocks_per_set), dtype=np.int)
-        self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
-        self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
-        self.replace_bits = np.full((sets, blocks_per_set), MemorySettings.num_blocks_per_set - 1, dtype=np.int)
+        self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int64)
+        self.tags = np.zeros((sets, blocks_per_set), dtype=np.int64)
+        self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int64)
+        self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int64)
+        self.replace_bits = np.full((sets, blocks_per_set), MemorySettings.num_blocks_per_set - 1, dtype=np.int64)
         self.book_keeping_read_word = -1
         self.book_keeping_read_set = 0
         self.book_keeping_read_block = 0
@@ -57,10 +57,10 @@ class Cache:
         sets = round_down_to_power_of_two(sets)
         blocks_per_set = round_down_to_power_of_two(blocks_per_set)
         words_per_block = round_down_to_power_of_two(words_per_block)
-        self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int)
-        self.tags = np.zeros((sets, blocks_per_set), dtype=np.int)
-        self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
-        self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int)
+        self.contents = np.zeros((sets, blocks_per_set, words_per_block), dtype=np.int64)
+        self.tags = np.zeros((sets, blocks_per_set), dtype=np.int64)
+        self.valid_bits = np.zeros((sets, blocks_per_set), dtype=np.int64)
+        self.dirty_bits = np.zeros((sets, blocks_per_set), dtype=np.int64)
         MemorySettings.num_sets = sets
         MemorySettings.num_blocks_per_set = blocks_per_set
         MemorySettings.num_words_per_block = words_per_block
