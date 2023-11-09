@@ -557,11 +557,11 @@ class Screen:
 
     def _dump_reg_and_mem(self):
         with open('dumps/register_file.txt', 'w') as out:
-            print("\n".join([f'{x:032b}' for x in self.risc_v.state.register_file]), file=out)            
+            print("\n".join([f'{negative_fix(x, 32):032b}' for x in self.risc_v.state.register_file]), file=out)            
 
         global g_memory
         with open('dumps/memory.txt', 'w') as out:
-            print("\n".join([f'{x:032b}' for x in g_memory]), file=out)    
+            print("\n".join([f'{negative_fix(x, 32):032b}' for x in g_memory]), file=out)    
 
     def _assemble_file(self, filename):
         try:

@@ -1,9 +1,9 @@
 import math
 
-from disassembler import Instruction
-
 
 def read_program_mem(filename, mem):
+    from disassembler import Instruction
+
     mem_list = []
     f = open(filename, "r")
     for line in f:
@@ -41,3 +41,6 @@ to_uint8, to_int8, to_uint16, to_int16, to_uint32, to_int32, to_uint64, to_int64
 
 def round_down_to_power_of_two(n):
     return pow(2, int(math.floor(math.log2(n))))
+
+def negative_fix(value, bit_length):
+        return value - (value >> bit_length - 1) * (2 ** bit_length)
